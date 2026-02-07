@@ -78,7 +78,7 @@ export async function getClinicContext(): Promise<ClinicContext> {
       stripe_subscription_id: null,
     });
 
-    profile = { clinic_id: clinic.id, role: "admin" };
+    profile = { clinic_id: clinic.id, role: "admin", permissions: null };
   }
 
   return {

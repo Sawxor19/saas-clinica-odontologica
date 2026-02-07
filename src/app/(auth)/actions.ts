@@ -170,7 +170,7 @@ export async function logoutAction() {
 export async function requestPasswordResetAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   if (!email) {
-    return { error: "Informe o email." };
+    redirect("/forgot-password?error=Informe%20o%20email.");
   }
 
   const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password`;
@@ -178,7 +178,7 @@ export async function requestPasswordResetAction(formData: FormData) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {
-    return { error: error.message };
+    redirect(`/forgot-password?error=${encodeURIComponent(error.message)}`);
   }
 
   redirect("/forgot-password?sent=1");

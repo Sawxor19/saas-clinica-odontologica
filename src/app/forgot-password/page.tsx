@@ -1,4 +1,4 @@
-import { requestPasswordResetAction } from "@/app/(auth)/actions";
+﻿import { requestPasswordResetAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 export default async function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ sent?: string }>;
+  searchParams?: Promise<{ sent?: string; error?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const sent = resolvedSearchParams?.sent === "1";
+  const errorMessage = resolvedSearchParams?.error;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
@@ -21,6 +22,11 @@ export default async function ForgotPasswordPage({
           {sent ? (
             <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
               Enviamos um email com instruções para redefinir sua senha.
+            </div>
+          ) : null}
+          {errorMessage ? (
+            <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+              {errorMessage}
             </div>
           ) : null}
           <form className="space-y-4" action={requestPasswordResetAction}>

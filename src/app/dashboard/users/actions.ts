@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { changeUserRole, createStaffMember, deleteStaffMember } from "@/server/services/users";
+import { PermissionSet } from "@/server/rbac/permissions";
 
 const PERMISSION_KEYS = [
   "manageUsers",
@@ -43,9 +44,10 @@ export async function createStaffAction(formData: FormData) {
   const address = String(formData.get("address") || "");
   const cep = String(formData.get("cep") || "");
   const photo = formData.get("photo") as File | null;
-  const permissions = Object.fromEntries(
-    PERMISSION_KEYS.map((key) => [key, formData.get(`perm_${key}`) === "on"])
-  );
+  const permissions = PERMISSION_KEYS.reduce((acc, key) => {
+    acc[key] = formData.get(`perm_${key}`) === "on";
+    return acc;
+  }, {} as PermissionSet);
 
   if (!full_name || !email || !password || !role) return;
 

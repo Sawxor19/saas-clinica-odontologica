@@ -16,6 +16,19 @@ import {
   parseDateTimeLocal,
   zonedTimeToUtc,
 } from "@/lib/timezone";
+import { AppointmentInput } from "@/types/schemas";
+
+const APPOINTMENT_STATUSES = [
+  "scheduled",
+  "confirmed",
+  "arrived",
+  "in_progress",
+  "completed",
+  "missed",
+  "cancelled",
+] as const;
+
+type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 export async function createAppointmentAction(formData: FormData) {
   const { clinicId } = await getClinicContext();
@@ -32,6 +45,13 @@ export async function createAppointmentAction(formData: FormData) {
     return zonedTimeToUtc(parts, clinicTimezone).toISOString();
   };
 
+  const rawStatus = String(formData.get("status") || "scheduled");
+  const status: AppointmentStatus = APPOINTMENT_STATUSES.includes(
+    rawStatus as AppointmentStatus
+  )
+    ? (rawStatus as AppointmentStatus)
+    : "scheduled";
+
   const input = {
     patient_id: String(formData.get("patient_id") || ""),
     dentist_id: String(formData.get("dentist_id") || ""),
@@ -39,10 +59,10 @@ export async function createAppointmentAction(formData: FormData) {
     room_id: String(formData.get("room_id") || ""),
     starts_at: normalizeDateTime(String(formData.get("starts_at") || "")),
     ends_at: normalizeDateTime(String(formData.get("ends_at") || "")),
-    status: String(formData.get("status") || "scheduled"),
+    status,
     charge_amount: Number(formData.get("charge_amount") || 0),
     notes: String(formData.get("notes") || ""),
-  };
+  } satisfies AppointmentInput;
   await addAppointment(input);
 
   try {
@@ -76,7 +96,12 @@ export async function createAppointmentAction(formData: FormData) {
 
 export async function updateAppointmentStatusAction(formData: FormData) {
   const appointmentId = String(formData.get("appointment_id") || "");
-  const status = String(formData.get("status") || "scheduled");
+  const rawStatus = String(formData.get("status") || "scheduled");
+  const status: AppointmentStatus = APPOINTMENT_STATUSES.includes(
+    rawStatus as AppointmentStatus
+  )
+    ? (rawStatus as AppointmentStatus)
+    : "scheduled";
   const paymentStatus = String(formData.get("payment_status") || "");
   const paymentMethod = String(formData.get("payment_method") || "");
   if (!appointmentId) return;
