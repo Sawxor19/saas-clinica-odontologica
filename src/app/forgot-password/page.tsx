@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default function ForgotPasswordPage({
+export default async function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams?: { sent?: string };
+  searchParams?: Promise<{ sent?: string }>;
 }) {
-  const sent = searchParams?.sent === "1";
+  const resolvedSearchParams = await searchParams;
+  const sent = resolvedSearchParams?.sent === "1";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">

@@ -9,10 +9,11 @@ import { BarChart3, Percent } from "lucide-react";
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams?: { start?: string; end?: string };
+  searchParams?: Promise<{ start?: string; end?: string }>;
 }) {
-  const start = searchParams?.start;
-  const end = searchParams?.end;
+  const resolvedSearchParams = await searchParams;
+  const start = resolvedSearchParams?.start;
+  const end = resolvedSearchParams?.end;
   const summary = await getReportsSummary(start, end);
 
   return (
