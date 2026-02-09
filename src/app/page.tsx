@@ -22,13 +22,13 @@ export default function Home() {
     {
       key: "semiannual",
       name: "Semestral",
-      price: 219.9,
+      price: 269.9,
       months: 6,
     },
     {
       key: "annual",
       name: "Anual",
-      price: 399.9,
+      price: 499.9,
       months: 12,
     },
   ];
