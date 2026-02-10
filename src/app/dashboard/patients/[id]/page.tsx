@@ -75,6 +75,13 @@ export default async function PatientDetailsPage({
     ? await getOdontogram(resolvedParams.id)
     : null;
   const photoUrl = patient.photo_path ? await getAttachmentUrl(patient.photo_path) : null;
+  const signatureUrl = patient.signature_path
+    ? await getAttachmentUrl(patient.signature_path)
+    : null;
+  const booleanLabel = (value: boolean | null | undefined) => {
+    if (value === null || value === undefined) return "-";
+    return value ? "Sim" : "Não";
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -141,6 +148,25 @@ export default async function PatientDetailsPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Assinatura digital</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {signatureUrl ? (
+                <img
+                  src={signatureUrl}
+                  alt="Assinatura do paciente"
+                  className="h-40 w-full rounded-md object-contain bg-background"
+                />
+              ) : (
+                <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Sem assinatura cadastrada
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Alertas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -148,6 +174,20 @@ export default async function PatientDetailsPage({
               <div>Condições: {patient.chronic_conditions ?? "-"}</div>
               <div>Medicamentos: {patient.medications ?? "-"}</div>
               <div>Alertas clínicos: {patient.alerts ?? "-"}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Habitos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <div>Fuma: {booleanLabel(patient.smoker)}</div>
+              <div>Bebe: {booleanLabel(patient.drinker)}</div>
+              <div>Usa drogas: {booleanLabel(patient.drug_use)}</div>
+              {patient.drug_use_details ? (
+                <div>Quais: {patient.drug_use_details}</div>
+              ) : null}
             </CardContent>
           </Card>
         </div>

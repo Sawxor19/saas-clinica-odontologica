@@ -1,8 +1,82 @@
-"use server";
+﻿"use server";
 
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { patientSchema } from "@/types/schemas";
+import { verifyCaptcha } from "@/app/patient-intake/[token]/captcha";
+
+const BUCKET = "clinic-attachments";
+
+function normalizeBirthDate(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+  if (!match) return trimmed;
+  const [, day, month, year] = match;
+  return `${year}-${month}-${day}`;
+}
+
+function parseBoolean(value: FormDataEntryValue | null) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (["yes", "sim", "true", "1"].includes(normalized)) return true;
+  if (["no", "nao", "não", "false", "0"].includes(normalized)) return false;
+  return null;
+}
+
+function decodeDataUrl(dataUrl: string) {
+  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) {
+    throw new Error("Assinatura inválida");
+  }
+  const [, mime, base64] = match;
+  return {
+    mime,
+    buffer: Buffer.from(base64, "base64"),
+  };
+}
+
+function sanitizeFileName(name: string) {
+  const trimmed = name.trim();
+  return trimmed ? trimmed.replace(/[^\w.\-]+/g, "_") : "arquivo";
+}
+
+async function uploadIntakeFile(input: {
+  admin: ReturnType<typeof supabaseAdmin>;
+  clinicId: string;
+  patientId: string;
+  fileBody: Blob | ArrayBuffer | Uint8Array;
+  fileName: string;
+  contentType?: string;
+  category: string;
+}) {
+  const safeName = sanitizeFileName(input.fileName);
+  const path = `${input.clinicId}/${input.patientId}/${Date.now()}-${safeName}`;
+  const { error: uploadError } = await input.admin.storage
+    .from(BUCKET)
+    .upload(path, input.fileBody, {
+      upsert: true,
+      contentType: input.contentType,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { error: insertError } = await input.admin.from("attachments").insert({
+    clinic_id: input.clinicId,
+    patient_id: input.patientId,
+    file_path: path,
+    file_name: safeName,
+    category: input.category,
+  });
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  return path;
+}
 
 export async function submitPatientIntake(token: string, formData: FormData) {
   const admin = supabaseAdmin();
@@ -16,60 +90,142 @@ export async function submitPatientIntake(token: string, formData: FormData) {
     throw new Error("Link inválido ou expirado");
   }
 
-  const input = patientSchema.parse({
-    full_name: formData.get("full_name"),
-    email: formData.get("email"),
-    phone: link.phone,
-    birth_date: formData.get("birth_date"),
-    cpf: formData.get("cpf"),
-    address: formData.get("address"),
-    cep: formData.get("cep"),
-    emergency_contact: formData.get("emergency_contact"),
-    allergies: formData.get("allergies"),
-    chronic_conditions: formData.get("chronic_conditions"),
-    medications: formData.get("medications"),
-    alerts: formData.get("alerts"),
-    notes: formData.get("notes"),
+  const captchaValid = verifyCaptcha({
+    a: Number(formData.get("captcha_a") || 0),
+    b: Number(formData.get("captcha_b") || 0),
+    token: String(formData.get("captcha_token") || ""),
+    answer: String(formData.get("captcha_answer") || ""),
   });
 
-  if (link.patient_id) {
-    await admin
+  if (!captchaValid) {
+    throw new Error("Captcha inválido");
+  }
+
+  const birthDate = normalizeBirthDate(String(formData.get("birth_date") || ""));
+  const phoneInput = String(formData.get("phone") || "").trim();
+
+  if (!phoneInput && !link.phone) {
+    throw new Error("Telefone obrigat?rio");
+  }
+
+  const input = patientSchema.parse({
+    full_name: String(formData.get("full_name") || "").trim(),
+    email: String(formData.get("email") || "").trim(),
+    phone: phoneInput || link.phone || "",
+    birth_date: birthDate,
+    cpf: String(formData.get("cpf") || "").trim(),
+    address: String(formData.get("address") || "").trim(),
+    cep: String(formData.get("cep") || "").trim(),
+    emergency_contact: String(formData.get("emergency_contact") || "").trim(),
+    allergies: String(formData.get("allergies") || "").trim(),
+    chronic_conditions: String(formData.get("chronic_conditions") || "").trim(),
+    medications: String(formData.get("medications") || "").trim(),
+  });
+
+  const smoker = parseBoolean(formData.get("smoker"));
+  const drinker = parseBoolean(formData.get("drinker"));
+  const drugUse = parseBoolean(formData.get("drug_use"));
+  const drugUseDetails = String(formData.get("drug_use_details") || "").trim();
+
+  if (smoker === null || drinker === null || drugUse === null) {
+    throw new Error("Respostas inválidas");
+  }
+
+  if (drugUse && !drugUseDetails) {
+    throw new Error("Informe quais drogas utiliza");
+  }
+
+
+  const patientPayload = {
+    full_name: input.full_name,
+    email: input.email || null,
+    phone: input.phone || null,
+    birth_date: input.birth_date || null,
+    cpf: input.cpf || null,
+    address: input.address || null,
+    cep: input.cep || null,
+    emergency_contact: input.emergency_contact || null,
+    allergies: input.allergies || null,
+    chronic_conditions: input.chronic_conditions || null,
+    medications: input.medications || null,
+    smoker,
+    drinker,
+    drug_use: drugUse,
+    drug_use_details: drugUse ? (drugUseDetails || null) : null,
+    status: "active" as const,
+  };
+
+  let patientId = link.patient_id;
+  if (patientId) {
+    const { error: updateError } = await admin
       .from("patients")
-      .update({
-        full_name: input.full_name,
-        email: input.email || null,
-        phone: input.phone || null,
-        birth_date: input.birth_date || null,
-        cpf: input.cpf || null,
-        address: input.address || null,
-        cep: input.cep || null,
-        emergency_contact: input.emergency_contact || null,
-        allergies: input.allergies || null,
-        chronic_conditions: input.chronic_conditions || null,
-        medications: input.medications || null,
-        alerts: input.alerts || null,
-        notes: input.notes || null,
-        status: "active",
-      })
-      .eq("id", link.patient_id);
+      .update(patientPayload)
+      .eq("id", patientId);
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
   } else {
-    await admin.from("patients").insert({
-      clinic_id: link.clinic_id,
-      full_name: input.full_name,
-      email: input.email || null,
-      phone: input.phone || null,
-      birth_date: input.birth_date || null,
-      cpf: input.cpf || null,
-      address: input.address || null,
-      cep: input.cep || null,
-      emergency_contact: input.emergency_contact || null,
-      allergies: input.allergies || null,
-      chronic_conditions: input.chronic_conditions || null,
-      medications: input.medications || null,
-      alerts: input.alerts || null,
-      notes: input.notes || null,
-      status: "active",
+    const { data: patient, error: insertError } = await admin
+      .from("patients")
+      .insert({
+        clinic_id: link.clinic_id,
+        ...patientPayload,
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !patient) {
+      throw new Error(insertError?.message || "Erro ao criar paciente");
+    }
+    patientId = patient.id;
+  }
+
+  const signatureData = String(formData.get("signature_data") || "");
+  if (!signatureData) {
+    throw new Error("Assinatura obrigatória");
+  }
+
+  const signature = decodeDataUrl(signatureData);
+  const signaturePath = await uploadIntakeFile({
+    admin,
+    clinicId: link.clinic_id,
+    patientId,
+    fileBody: signature.buffer,
+    fileName: "assinatura.png",
+    contentType: signature.mime,
+    category: "signature",
+  });
+
+  const photo = formData.get("photo") as File | null;
+  let photoPath: string | null = null;
+  if (photo && photo.size > 0) {
+    if (!photo.type.startsWith("image/")) {
+      throw new Error("Foto inválida");
+    }
+    photoPath = await uploadIntakeFile({
+      admin,
+      clinicId: link.clinic_id,
+      patientId,
+      fileBody: photo,
+      fileName: photo.name || "foto.png",
+      contentType: photo.type,
+      category: "photo",
     });
+  }
+
+  const mediaUpdate: { signature_path: string; photo_path?: string } = {
+    signature_path: signaturePath,
+  };
+  if (photoPath) {
+    mediaUpdate.photo_path = photoPath;
+  }
+
+  const { error: mediaError } = await admin
+    .from("patients")
+    .update(mediaUpdate)
+    .eq("id", patientId);
+  if (mediaError) {
+    throw new Error(mediaError.message);
   }
 
   await admin

@@ -1,55 +1,67 @@
-"use server";
+﻿"use server";
 
 import crypto from "crypto";
 import { getClinicContext } from "@/server/auth/context";
-import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
-import { sendWhatsAppMessage } from "@/server/notifications/whatsapp";
 
-export async function sendIntakeLinkAction(formData: FormData) {
-  const phone = String(formData.get("phone") || "").trim();
-  if (!phone) throw new Error("Telefone obrigatório");
+type IntakeLinkResult = { ok: true; url: string } | { ok: false; error: string };
 
-  const { clinicId } = await getClinicContext();
-  const admin = supabaseAdmin();
-  const supabase = await supabaseServerClient();
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
 
-  const { data: clinic } = await supabase
-    .from("clinics")
-    .select("whatsapp_number")
-    .eq("id", clinicId)
-    .single();
+export async function sendIntakeLinkAction(formData: FormData): Promise<IntakeLinkResult> {
+  try {
+    const rawPhone = String(formData.get("phone") || "").trim();
+    const digits = rawPhone ? normalizePhone(rawPhone) : "";
+    if (rawPhone && digits.length < 10) {
+      return { ok: false, error: "Telefone inválido" };
+    }
 
-  if (!clinic?.whatsapp_number) {
-    throw new Error("WhatsApp da clínica não configurado");
-  }
+    const phone = rawPhone || null;
 
-  const token = crypto.randomBytes(16).toString("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    const { clinicId } = await getClinicContext();
+    const admin = supabaseAdmin();
 
-  const { data: patient } = await admin
-    .from("patients")
-    .insert({
+    const token = crypto.randomBytes(16).toString("hex");
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
+
+    const { data: patient, error: patientError } = await admin
+      .from("patients")
+      .insert({
+        clinic_id: clinicId,
+        full_name: "Paciente (pendente)",
+        phone,
+        status: "intake_pending",
+      })
+      .select("id")
+      .single();
+
+    if (patientError) {
+      return { ok: false, error: patientError.message };
+    }
+
+    const { error: linkError } = await admin.from("patient_intake_links").insert({
       clinic_id: clinicId,
-      full_name: "Paciente (pendente)",
       phone,
-      status: "intake_pending",
-    })
-    .select("id")
-    .single();
+      token,
+      expires_at: expiresAt.toISOString(),
+      patient_id: patient?.id ?? null,
+    });
 
-  await admin.from("patient_intake_links").insert({
-    clinic_id: clinicId,
-    phone,
-    token,
-    expires_at: expiresAt.toISOString(),
-    patient_id: patient?.id ?? null,
-  });
+    if (linkError) {
+      return { ok: false, error: linkError.message };
+    }
 
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/patient-intake/${token}`;
-  await sendWhatsAppMessage({
-    to: phone,
-    from: clinic.whatsapp_number,
-    body: `Olá! Para agilizar seu atendimento, preencha seu cadastro: ${url}`,
-  });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      return { ok: false, error: "URL do app não configurada" };
+    }
+
+    return { ok: true, url: `${appUrl}/patient-intake/${token}` };
+  } catch (error) {
+    console.error("sendIntakeLinkAction error", error);
+    const message = error instanceof Error ? error.message : "Falha ao gerar link";
+    return { ok: false, error: message };
+  }
 }

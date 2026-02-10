@@ -46,6 +46,9 @@ sql/020_add_clinic_timezone.sql
 sql/021_budget_items_rls.sql
 sql/022_signup_verification.sql
 sql/023_signup_verification_rls.sql
+sql/024_add_patient_intake_fields.sql
+sql/025_add_patient_drug_use_details.sql
+sql/026_relax_patient_intake_phone.sql
 ```
 
 ## Configuração do Stripe
