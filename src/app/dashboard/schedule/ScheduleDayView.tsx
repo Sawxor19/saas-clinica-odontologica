@@ -155,7 +155,7 @@ export function ScheduleDayView({
                       />
                       <select
                         name="procedure_id"
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                         required
                       >
                         <option value="">Procedimento</option>
@@ -166,7 +166,7 @@ export function ScheduleDayView({
                         ))}
                       </select>
                       <input
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                         name="charge_amount"
                         type="number"
                         min="0"
@@ -175,7 +175,7 @@ export function ScheduleDayView({
                       />
                       <select
                         name="patient_id"
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                         required
                       >
                         <option value="">Paciente</option>
@@ -187,7 +187,7 @@ export function ScheduleDayView({
                       </select>
                       <select
                         name="dentist_id"
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                         required
                       >
                         <option value="">Dentista</option>
@@ -199,7 +199,7 @@ export function ScheduleDayView({
                       </select>
                       <select
                         name="room_id"
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                       >
                         <option value="">Sala</option>
                         {roomOptions.map((room) => (
@@ -281,7 +281,7 @@ export function ScheduleDayView({
 
                       <div className="flex flex-wrap items-center gap-2">
                         <select
-                          className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+                          className="h-10 rounded-2xl border border-input bg-white px-4 text-xs text-foreground"
                           value={paymentMethod}
                           onChange={(event) => setPaymentMethod(event.target.value)}
                         >

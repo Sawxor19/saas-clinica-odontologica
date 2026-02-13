@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DataTable } from "@/components/layout/DataTable";
 import { Button } from "@/components/ui/button";
+import { FloatingLabelInput, FloatingLabelTextarea } from "@/components/ui/floating-field";
 import { updatePatientAction, deletePatientAction } from "@/app/dashboard/patients/actions";
 
 type PatientRow = {
@@ -85,8 +86,8 @@ export function PatientsTable({
       />
 
       {selected ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-xl bg-background p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="glass-panel fade-up w-full max-w-3xl rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Editar paciente</h2>
@@ -99,81 +100,70 @@ export function PatientsTable({
 
             <form className="mt-4 grid gap-3 md:grid-cols-2" action={updatePatientAction}>
               <input type="hidden" name="patient_id" value={selected.id} />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="full_name"
+                label="Nome completo"
                 defaultValue={selected.full_name}
-                placeholder="Nome completo"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="email"
+                label="Email"
                 defaultValue={selected.email ?? ""}
-                placeholder="Email"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="phone"
+                label="Telefone"
                 defaultValue={selected.phone ?? ""}
-                placeholder="Telefone"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="birth_date"
+                label="Nascimento"
                 type="date"
                 defaultValue={selected.birth_date ?? ""}
               />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="cpf"
+                label="CPF"
                 defaultValue={selected.cpf ?? ""}
-                placeholder="CPF"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="cep"
+                label="CEP"
                 defaultValue={selected.cep ?? ""}
-                placeholder="CEP"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="address"
+                label="Endereco"
                 defaultValue={selected.address ?? ""}
-                placeholder="Endereço"
               />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="emergency_contact"
+                label="Contato de emergencia"
                 defaultValue={selected.emergency_contact ?? ""}
-                placeholder="Contato de emergência"
               />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="allergies"
+                label="Alergias"
                 defaultValue={selected.allergies ?? ""}
-                placeholder="Alergias"
-              />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              <FloatingLabelInput
                 name="chronic_conditions"
+                label="Condicoes cronicas"
                 defaultValue={selected.chronic_conditions ?? ""}
-                placeholder="Condições crônicas"
               />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="medications"
+                label="Medicacoes"
                 defaultValue={selected.medications ?? ""}
-                placeholder="Medicações"
               />
-              <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              <FloatingLabelInput
                 name="alerts"
+                label="Alertas"
                 defaultValue={selected.alerts ?? ""}
-                placeholder="Alertas"
-              />
+                />
               <select
                 name="dentist_id"
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 defaultValue={selected.dentist_id ?? ""}
               >
                 <option value="">Dentista responsável</option>
@@ -185,19 +175,20 @@ export function PatientsTable({
               </select>
               <select
                 name="status"
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 defaultValue={selected.status ?? "active"}
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
                 <option value="intake_pending">Cadastro pendente</option>
               </select>
-              <textarea
-                className="min-h-[96px] rounded-md border border-input bg-background px-3 py-2 text-sm md:col-span-2"
-                name="notes"
-                defaultValue={selected.notes ?? ""}
-                placeholder="Observações"
-              />
+              <div className="md:col-span-2">
+                <FloatingLabelTextarea
+                  name="notes"
+                  label="Observacoes"
+                  defaultValue={selected.notes ?? ""}
+                />
+              </div>
               <div className="md:col-span-2 flex justify-end">
                 <Button type="submit">Salvar alterações</Button>
               </div>

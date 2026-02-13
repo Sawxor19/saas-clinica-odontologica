@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Search } from "lucide-react";
 
 export type DataTableColumn<T> = {
   key: keyof T;
@@ -41,18 +42,21 @@ export function DataTable<T extends { id: string }>({
   const pageData = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <Input
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setPage(1);
-          }}
-          placeholder={searchPlaceholder}
-          className="max-w-sm"
-        />
-        <div className="text-xs text-muted-foreground">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder={searchPlaceholder}
+            className="pl-11"
+          />
+        </div>
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           {filtered.length} resultado(s)
         </div>
       </div>
@@ -86,7 +90,7 @@ export function DataTable<T extends { id: string }>({
       )}
 
       <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Página {page} de {totalPages}
         </div>
         <div className="flex gap-2">

@@ -45,23 +45,23 @@ export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
               <form className="mt-4 grid gap-3 md:grid-cols-2" action={updateMaterialAction}>
                 <input type="hidden" name="material_id" value={material.id} />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="name"
                   defaultValue={material.name}
                 />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="unit"
                   defaultValue={material.unit}
                 />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="current_stock"
                   type="number"
                   defaultValue={material.current_stock}
                 />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="min_stock"
                   type="number"
                   defaultValue={material.min_stock}

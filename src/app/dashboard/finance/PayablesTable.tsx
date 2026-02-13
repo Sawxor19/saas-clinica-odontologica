@@ -62,13 +62,13 @@ export function PayablesTable({ payables }: { payables: PayableRow[] }) {
               <form className="mt-4 grid gap-3 md:grid-cols-2" action={updatePayableAction}>
                 <input type="hidden" name="payable_id" value={payable.id} />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="name"
                   defaultValue={payable.name}
                   placeholder="Nome"
                 />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="amount"
                   type="number"
                   min="0"
@@ -76,14 +76,14 @@ export function PayablesTable({ payables }: { payables: PayableRow[] }) {
                   placeholder="Valor"
                 />
                 <input
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   name="due_date"
                   type="date"
                   defaultValue={payable.due_date}
                 />
                 <select
                   name="payment_method"
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   value={method}
                   onChange={(event) =>
                     setMethodMap((prev) => ({ ...prev, [payable.id]: event.target.value }))
@@ -97,7 +97,7 @@ export function PayablesTable({ payables }: { payables: PayableRow[] }) {
                 </select>
                 <select
                   name="installments"
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   defaultValue={payable.installments?.toString() ?? ""}
                   disabled={!showInstallments}
                 >
@@ -110,7 +110,7 @@ export function PayablesTable({ payables }: { payables: PayableRow[] }) {
                 </select>
                 <select
                   name="is_paid"
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   defaultValue={payable.is_paid ? "true" : "false"}
                 >
                   <option value="false">Não pago</option>

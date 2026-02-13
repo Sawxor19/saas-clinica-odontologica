@@ -22,6 +22,11 @@ export function ProceduresTable({
   materials: MaterialOption[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const formatPrice = (value: number) =>
+    value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   return (
     <div className="space-y-3">
@@ -32,7 +37,9 @@ export function ProceduresTable({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">{procedure.name}</div>
-                <div className="text-xs text-muted-foreground">R$ {procedure.price}</div>
+                <div className="text-xs text-muted-foreground">
+                  R$ {formatPrice(procedure.price)}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : procedure.id)}>
@@ -52,15 +59,16 @@ export function ProceduresTable({
                 <input type="hidden" name="procedure_id" value={procedure.id} />
                 <div className="grid gap-3 md:grid-cols-2">
                   <input
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     name="name"
                     defaultValue={procedure.name}
                   />
                   <input
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     name="price"
-                    type="number"
-                    defaultValue={procedure.price}
+                    type="text"
+                    inputMode="decimal"
+                    defaultValue={formatPrice(procedure.price)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -70,7 +78,7 @@ export function ProceduresTable({
                       <select
                         name="material_id"
                         defaultValue={item.material_id}
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                       >
                         <option value="">Selecione</option>
                         {materials.map((material) => (
@@ -83,7 +91,7 @@ export function ProceduresTable({
                         name="quantity"
                         type="number"
                         defaultValue={item.quantity}
-                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                       />
                       <div className="text-xs text-muted-foreground flex items-center">
                         Estoque vinculado

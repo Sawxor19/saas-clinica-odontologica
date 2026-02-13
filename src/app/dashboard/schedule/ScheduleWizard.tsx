@@ -45,8 +45,8 @@ export function ScheduleWizard({
   return (
     <>
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-lg rounded-xl bg-background p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="glass-panel fade-up w-full max-w-lg rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Novo agendamento</h2>
               <Button variant="ghost" size="sm" onClick={onClose}>
@@ -56,11 +56,11 @@ export function ScheduleWizard({
 
             <form action={createAppointmentAction} className="mt-4 space-y-4">
               {step === 1 ? (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Paciente</label>
+                <div className="space-y-4">
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Paciente</label>
                   <select
                     name="patient_id"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 w-full rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     required
                   >
                     <option value="">Selecione</option>
@@ -74,11 +74,11 @@ export function ScheduleWizard({
               ) : null}
 
               {step === 2 ? (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Procedimento</label>
+                <div className="space-y-4">
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Procedimento</label>
                   <select
                     name="procedure_id"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 w-full rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     required
                     value={selectedProcedureId}
                     onChange={(event) => {
@@ -97,7 +97,7 @@ export function ScheduleWizard({
                       </option>
                     ))}
                   </select>
-                  <label className="text-sm font-medium">Valor da consulta</label>
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Valor da consulta</label>
                   <Input
                     name="charge_amount"
                     type="number"
@@ -106,10 +106,10 @@ export function ScheduleWizard({
                     onChange={(event) => setChargeAmount(event.target.value)}
                     required
                   />
-                  <label className="text-sm font-medium">Dentista</label>
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dentista</label>
                   <select
                     name="dentist_id"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 w-full rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     required
                   >
                     <option value="">Selecione</option>
@@ -119,10 +119,10 @@ export function ScheduleWizard({
                       </option>
                     ))}
                   </select>
-                  <label className="text-sm font-medium">Sala</label>
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sala</label>
                   <select
                     name="room_id"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-12 w-full rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                   >
                     <option value="">Não definido</option>
                     {rooms.map((room) => (
@@ -135,8 +135,8 @@ export function ScheduleWizard({
               ) : null}
 
               {step === 3 ? (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Data e hora</label>
+                <div className="space-y-4">
+                  <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Data e hora</label>
                   <Input type="datetime-local" name="starts_at" required />
                   <Input type="datetime-local" name="ends_at" required />
                   <input type="hidden" name="status" value="scheduled" />

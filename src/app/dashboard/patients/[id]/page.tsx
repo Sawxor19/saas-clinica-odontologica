@@ -373,7 +373,7 @@ export default async function PatientDetailsPage({
                 <input type="hidden" name="patient_id" value={patient.id} />
                 <select
                   name="category"
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 >
                   <option value="document">Documento</option>
                   <option value="radiograph">Radiografia</option>

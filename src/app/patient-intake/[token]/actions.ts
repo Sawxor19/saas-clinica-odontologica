@@ -16,14 +16,6 @@ function normalizeBirthDate(value: string) {
   return `${year}-${month}-${day}`;
 }
 
-function parseBoolean(value: FormDataEntryValue | null) {
-  if (!value) return null;
-  const normalized = String(value).trim().toLowerCase();
-  if (["yes", "sim", "true", "1"].includes(normalized)) return true;
-  if (["no", "nao", "não", "false", "0"].includes(normalized)) return false;
-  return null;
-}
-
 function decodeDataUrl(dataUrl: string) {
   const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
   if (!match) {
@@ -117,24 +109,7 @@ export async function submitPatientIntake(token: string, formData: FormData) {
     address: String(formData.get("address") || "").trim(),
     cep: String(formData.get("cep") || "").trim(),
     emergency_contact: String(formData.get("emergency_contact") || "").trim(),
-    allergies: String(formData.get("allergies") || "").trim(),
-    chronic_conditions: String(formData.get("chronic_conditions") || "").trim(),
-    medications: String(formData.get("medications") || "").trim(),
   });
-
-  const smoker = parseBoolean(formData.get("smoker"));
-  const drinker = parseBoolean(formData.get("drinker"));
-  const drugUse = parseBoolean(formData.get("drug_use"));
-  const drugUseDetails = String(formData.get("drug_use_details") || "").trim();
-
-  if (smoker === null || drinker === null || drugUse === null) {
-    throw new Error("Respostas inválidas");
-  }
-
-  if (drugUse && !drugUseDetails) {
-    throw new Error("Informe quais drogas utiliza");
-  }
-
 
   const patientPayload = {
     full_name: input.full_name,
@@ -145,13 +120,6 @@ export async function submitPatientIntake(token: string, formData: FormData) {
     address: input.address || null,
     cep: input.cep || null,
     emergency_contact: input.emergency_contact || null,
-    allergies: input.allergies || null,
-    chronic_conditions: input.chronic_conditions || null,
-    medications: input.medications || null,
-    smoker,
-    drinker,
-    drug_use: drugUse,
-    drug_use_details: drugUse ? (drugUseDetails || null) : null,
     status: "active" as const,
   };
 
@@ -196,29 +164,9 @@ export async function submitPatientIntake(token: string, formData: FormData) {
     category: "signature",
   });
 
-  const photo = formData.get("photo") as File | null;
-  let photoPath: string | null = null;
-  if (photo && photo.size > 0) {
-    if (!photo.type.startsWith("image/")) {
-      throw new Error("Foto inválida");
-    }
-    photoPath = await uploadIntakeFile({
-      admin,
-      clinicId: link.clinic_id,
-      patientId,
-      fileBody: photo,
-      fileName: photo.name || "foto.png",
-      contentType: photo.type,
-      category: "photo",
-    });
-  }
-
-  const mediaUpdate: { signature_path: string; photo_path?: string } = {
+  const mediaUpdate: { signature_path: string } = {
     signature_path: signaturePath,
   };
-  if (photoPath) {
-    mediaUpdate.photo_path = photoPath;
-  }
 
   const { error: mediaError } = await admin
     .from("patients")

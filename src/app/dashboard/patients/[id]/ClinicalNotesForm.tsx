@@ -26,7 +26,7 @@ export function ClinicalNotesForm({ patientId }: { patientId: string }) {
     <form action={addClinicalNoteAction} className="space-y-2">
       <input type="hidden" name="patient_id" value={patientId} />
       <select
-        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 w-full rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         value=""
         onChange={(event) => {
           const selected = templates.find((item) => item.label === event.target.value);
@@ -42,7 +42,7 @@ export function ClinicalNotesForm({ patientId }: { patientId: string }) {
       </select>
       <textarea
         name="note"
-        className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        className="min-h-[120px] w-full rounded-2xl border border-input bg-white px-4 py-3 text-sm text-foreground"
         placeholder="Adicionar evolução clínica..."
         value={note}
         onChange={(event) => setNote(event.target.value)}

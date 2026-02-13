@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { FileInput } from "@/components/ui/file-input";
 import { Input } from "@/components/ui/input";
 
 function maskCPF(value: string) {
@@ -57,18 +56,6 @@ export function PatientIntakeForm({
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const lastCepRef = useRef("");
 
-  const [hasDisease, setHasDisease] = useState("");
-  const [hasAllergy, setHasAllergy] = useState("");
-  const [usesMedication, setUsesMedication] = useState("");
-  const [diseaseDetails, setDiseaseDetails] = useState("");
-  const [allergyDetails, setAllergyDetails] = useState("");
-  const [medicationDetails, setMedicationDetails] = useState("");
-
-  const [smoker, setSmoker] = useState("");
-  const [drinker, setDrinker] = useState("");
-  const [drugUse, setDrugUse] = useState("");
-  const [drugDetails, setDrugDetails] = useState("");
-
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const [signatureData, setSignatureData] = useState("");
@@ -97,22 +84,6 @@ export function PatientIntakeForm({
     observer.observe(canvas);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (hasDisease !== "yes") setDiseaseDetails("");
-  }, [hasDisease]);
-
-  useEffect(() => {
-    if (hasAllergy !== "yes") setAllergyDetails("");
-  }, [hasAllergy]);
-
-  useEffect(() => {
-    if (usesMedication !== "yes") setMedicationDetails("");
-  }, [usesMedication]);
-
-  useEffect(() => {
-    if (drugUse !== "yes") setDrugDetails("");
-  }, [drugUse]);
 
   useEffect(() => {
     const digits = cep.replace(/\D/g, "");
@@ -246,138 +217,6 @@ export function PatientIntakeForm({
         {cepStatus === "loading" ? "Buscando endereço pelo CEP..." : null}
         {cepStatus === "success" ? "Endereço preenchido automaticamente." : null}
         {cepStatus === "error" ? "CEP não encontrado." : null}
-      </div>
-
-      <div className="grid gap-2 md:col-span-2">
-        <label className="text-sm font-medium">Tem alguma doença?</label>
-        <select
-          name="has_disease"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={hasDisease}
-          onChange={(event) => setHasDisease(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-        {hasDisease === "yes" ? (
-          <Input
-            name="chronic_conditions"
-            placeholder="Quais?"
-            value={diseaseDetails}
-            onChange={(event) => setDiseaseDetails(event.target.value)}
-            required
-          />
-        ) : null}
-      </div>
-
-      <div className="grid gap-2 md:col-span-2">
-        <label className="text-sm font-medium">Tem alguma alergia?</label>
-        <select
-          name="has_allergy"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={hasAllergy}
-          onChange={(event) => setHasAllergy(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-        {hasAllergy === "yes" ? (
-          <Input
-            name="allergies"
-            placeholder="Quais?"
-            value={allergyDetails}
-            onChange={(event) => setAllergyDetails(event.target.value)}
-            required
-          />
-        ) : null}
-      </div>
-
-      <div className="grid gap-2 md:col-span-2">
-        <label className="text-sm font-medium">Usa algum medicamento?</label>
-        <select
-          name="uses_medication"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={usesMedication}
-          onChange={(event) => setUsesMedication(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-        {usesMedication === "yes" ? (
-          <Input
-            name="medications"
-            placeholder="Quais?"
-            value={medicationDetails}
-            onChange={(event) => setMedicationDetails(event.target.value)}
-            required
-          />
-        ) : null}
-      </div>
-
-      <div className="grid gap-2">
-        <label className="text-sm font-medium">Fuma?</label>
-        <select
-          name="smoker"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={smoker}
-          onChange={(event) => setSmoker(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-      </div>
-
-      <div className="grid gap-2">
-        <label className="text-sm font-medium">Bebe?</label>
-        <select
-          name="drinker"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={drinker}
-          onChange={(event) => setDrinker(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-      </div>
-
-      <div className="grid gap-2 md:col-span-2">
-        <label className="text-sm font-medium">Usa algum tipo de droga?</label>
-        <select
-          name="drug_use"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          required
-          value={drugUse}
-          onChange={(event) => setDrugUse(event.target.value)}
-        >
-          <option value="">Selecione</option>
-          <option value="no">Não</option>
-          <option value="yes">Sim</option>
-        </select>
-        {drugUse === "yes" ? (
-          <Input
-            name="drug_use_details"
-            placeholder="Quais?"
-            value={drugDetails}
-            onChange={(event) => setDrugDetails(event.target.value)}
-            required
-          />
-        ) : null}
-
-      </div>
-
-      <div className="md:col-span-2 space-y-2">
-        <label className="text-sm font-medium">Foto do paciente (opcional)</label>
-        <FileInput name="photo" accept="image/*" helperText="Adicionar imagem" />
       </div>
 
       <div className="md:col-span-2 grid gap-2">

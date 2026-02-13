@@ -49,20 +49,20 @@ export default async function UsersPage() {
           {canManage ? (
             <form action={createStaffAction} className="grid gap-3 md:grid-cols-3">
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="full_name"
                 placeholder="Nome completo"
                 required
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="email"
                 type="email"
                 placeholder="Email"
                 required
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="password"
                 type="password"
                 placeholder="Senha inicial"
@@ -70,7 +70,7 @@ export default async function UsersPage() {
               />
               <select
                 name="role"
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 required
               >
                 <option value="">Perfil</option>
@@ -80,32 +80,32 @@ export default async function UsersPage() {
                 <option value="admin">Administrador</option>
               </select>
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="phone"
                 placeholder="Telefone"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="cpf"
                 placeholder="CPF"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="cro"
                 placeholder="CRO (dentista)"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="birth_date"
                 type="date"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="address"
                 placeholder="Endereço"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                 name="cep"
                 placeholder="CEP"
               />

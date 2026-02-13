@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
-import { sendSmsMessage } from "@/server/notifications/sms";
+import { isSmsConfigured, sendSmsMessage } from "@/server/notifications/sms";
 import { normalizeCPF, validateCPF } from "@/utils/validation/cpf";
 import { normalizePhoneToE164 } from "@/utils/validation/phone";
 import { hmacSha256 } from "@/utils/security/hmac";
@@ -19,6 +19,7 @@ const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_LOCKOUT_MINUTES = 15;
 const OTP_MAX_SEND_PER_DAY = 5;
+const REQUIRE_PHONE_VERIFICATION = process.env.SIGNUP_REQUIRE_PHONE_VERIFICATION === "true";
 
 function getSignupSecret() {
   const secret = process.env.SIGNUP_HMAC_SECRET || process.env.SIGNUP_ENCRYPTION_KEY;
@@ -107,6 +108,7 @@ export async function createSignupIntent(input: {
     phone_e164: phoneE164,
     phone_hash: phoneHash,
     email_verified: false,
+    phone_verified_at: REQUIRE_PHONE_VERIFICATION ? null : new Date().toISOString(),
     cpf_validated_at: new Date().toISOString(),
     status: "PENDING",
     updated_at: new Date().toISOString(),
@@ -123,7 +125,9 @@ export async function createSignupIntent(input: {
     userAgent: input.userAgent,
   });
 
-  await sendPhoneOtp(intent.id, input.ip, input.userAgent);
+  if (REQUIRE_PHONE_VERIFICATION) {
+    await sendPhoneOtp(intent.id, input.ip, input.userAgent);
+  }
 
   return intent;
 }
@@ -185,6 +189,13 @@ export async function sendPhoneOtp(intentId: string, ip?: string | null, userAge
     ip,
     userAgent,
   });
+
+  if (!isSmsConfigured() && process.env.NODE_ENV !== "production") {
+    logger.warn("SMS credentials missing; using dev OTP.", { intentId, otp });
+    return { devOtp: otp };
+  }
+
+  return { devOtp: undefined };
 }
 
 export async function verifyPhoneOtp(intentId: string, otp: string, ip?: string | null, userAgent?: string | null) {
@@ -263,13 +274,18 @@ export async function assertEmailVerifiedBySupabase(userId?: string | null) {
 export async function refreshEmailVerification(intentId: string) {
   const intent = await findSignupIntentById(intentId);
   const emailVerified = await assertEmailVerifiedBySupabase(intent.user_id);
-  const nextStatus = emailVerified && intent.phone_verified_at ? "VERIFIED" : "PENDING_VERIFICATIONS";
+  const phoneVerified = REQUIRE_PHONE_VERIFICATION ? Boolean(intent.phone_verified_at) : true;
+  const phoneVerifiedAt = REQUIRE_PHONE_VERIFICATION
+    ? intent.phone_verified_at
+    : intent.phone_verified_at ?? new Date().toISOString();
+  const nextStatus = emailVerified && phoneVerified ? "VERIFIED" : "PENDING_VERIFICATIONS";
   await updateSignupIntent(intent.id, {
     email_verified: emailVerified,
+    phone_verified_at: phoneVerifiedAt,
     status: nextStatus,
     updated_at: new Date().toISOString(),
   });
-  return { emailVerified, phoneVerified: Boolean(intent.phone_verified_at) };
+  return { emailVerified, phoneVerified };
 }
 
 export async function ensureReadyForCheckout(intentId: string) {
@@ -287,7 +303,7 @@ export async function ensureReadyForCheckout(intentId: string) {
     throw new Error("Email ainda não confirmado.");
   }
 
-  if (!intent.phone_verified_at) {
+  if (REQUIRE_PHONE_VERIFICATION && !intent.phone_verified_at) {
     throw new Error("Telefone ainda não verificado.");
   }
 

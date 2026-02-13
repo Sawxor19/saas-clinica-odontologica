@@ -1,27 +1,28 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  CalendarDays,
-  Users,
-  Wallet,
-  Shield,
-  Boxes,
-  Stethoscope,
-  BarChart3,
-} from "lucide-react";
 import { getClinicContext } from "@/server/auth/context";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/patients", label: "Pacientes", icon: Users },
-  { href: "/dashboard/schedule", label: "Agenda", icon: CalendarDays },
-  { href: "/dashboard/reports", label: "Relatórios", icon: BarChart3 },
-  { href: "/dashboard/procedures", label: "Procedimentos", icon: Stethoscope },
-  { href: "/dashboard/materials", label: "Materiais", icon: Boxes },
-  { href: "/dashboard/finance", label: "Financeiro", icon: Wallet },
-  { href: "/dashboard/users", label: "Equipe", icon: Users },
-  { href: "/dashboard/audit", label: "Auditoria", icon: Shield },
+type IconKey =
+  | "dashboard"
+  | "patients"
+  | "schedule"
+  | "reports"
+  | "procedures"
+  | "materials"
+  | "finance"
+  | "users"
+  | "audit";
+
+const navItems: Array<{ href: string; label: string; iconKey: IconKey }> = [
+  { href: "/dashboard", label: "Dashboard", iconKey: "dashboard" },
+  { href: "/dashboard/patients", label: "Pacientes", iconKey: "patients" },
+  { href: "/dashboard/schedule", label: "Agenda", iconKey: "schedule" },
+  { href: "/dashboard/reports", label: "Relatórios", iconKey: "reports" },
+  { href: "/dashboard/procedures", label: "Procedimentos", iconKey: "procedures" },
+  { href: "/dashboard/materials", label: "Materiais", iconKey: "materials" },
+  { href: "/dashboard/finance", label: "Financeiro", iconKey: "finance" },
+  { href: "/dashboard/users", label: "Equipe", iconKey: "users" },
+  { href: "/dashboard/audit", label: "Auditoria", iconKey: "audit" },
 ];
 
 export async function Sidebar({ className }: { className?: string }) {
@@ -36,23 +37,24 @@ export async function Sidebar({ className }: { className?: string }) {
     return true;
   });
   return (
-    <aside className={cn("w-64 border-r bg-card", className)}>
-      <div className="px-6 py-5 text-lg font-semibold">E-Clinic!</div>
-      <nav className="space-y-1 px-3">
-        {filtered.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-foreground hover:shadow-lg hover:shadow-emerald-500/10"
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+    <aside
+      className={cn(
+        "sticky top-0 flex h-screen w-16 flex-col border-r border-border bg-white/80 py-6 backdrop-blur sm:w-20 lg:w-64",
+        className
+      )}
+    >
+      <div className="px-4 pb-6 lg:px-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted text-sm font-semibold text-primary">
+            EC
+          </div>
+          <div className="hidden lg:block">
+            <div className="text-base font-semibold">E-Clinic</div>
+            <div className="text-xs text-muted-foreground">Dental OS</div>
+          </div>
+        </div>
+      </div>
+      <SidebarNav items={filtered} />
     </aside>
   );
 }

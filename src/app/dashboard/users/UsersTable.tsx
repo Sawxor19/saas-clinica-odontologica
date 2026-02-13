@@ -73,7 +73,7 @@ export function UsersTable({
                   <input type="hidden" name="user_id" value={user.user_id} />
                   <select
                     name="role"
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-10 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
                     value={selectedRole}
                     onChange={(event) =>
                       setRoleMap((prev) => ({ ...prev, [user.user_id]: event.target.value }))

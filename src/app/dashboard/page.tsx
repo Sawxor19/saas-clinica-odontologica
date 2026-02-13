@@ -24,16 +24,16 @@ export default async function DashboardPage() {
         title="Visão geral"
         description="Resumo inteligente da clínica com alertas e ações rápidas."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <Link
               href="/dashboard/patients"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent"
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
             >
               <UserPlus className="mr-2 h-4 w-4" /> Novo paciente
             </Link>
             <Link
               href="/dashboard/schedule"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent"
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
             >
               <CalendarPlus className="mr-2 h-4 w-4" /> Novo agendamento
             </Link>
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Faturamento do mês"
           value={`R$ ${metrics.revenue.toFixed(2)}`}
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                 {scheduleToday.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
+                    className="flex items-center justify-between rounded-2xl border border-border bg-white px-4 py-4"
                   >
                     <div>
                       <p className="text-sm font-medium">Consulta marcada</p>
@@ -102,11 +102,11 @@ export default async function DashboardPage() {
                           R$ {Number(item.charge_amount ?? 0).toFixed(2)}
                         </p>
                         {item.payment_status === "paid" ? (
-                          <p className="text-[10px] text-emerald-400">
+                          <p className="text-[10px] text-emerald-700">
                             Pago {item.payment_method ? `(${item.payment_method})` : ""}
                           </p>
                         ) : (
-                          <p className="text-[10px] text-amber-400">Não pago</p>
+                          <p className="text-[10px] text-amber-700">Não pago</p>
                         )}
                       </div>
                       <StatusBadge status={item.status} />
@@ -123,15 +123,15 @@ export default async function DashboardPage() {
             <CardTitle>Alertas inteligentes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-amber-200">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
               {role === "dentist"
                 ? "3 pacientes sem retorno há 90 dias."
                 : "2 orçamentos aprovados aguardam pagamento."}
             </div>
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-200">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
               0 parcelas vencidas nesta semana.
             </div>
-            <div className="rounded-md border border-sky-500/30 bg-sky-500/10 p-3 text-sky-200">
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-800">
               {role === "receptionist"
                 ? "Confirme os atendimentos das próximas 24h."
                 : "Sugestão de retorno automático ativada."}
@@ -142,3 +142,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

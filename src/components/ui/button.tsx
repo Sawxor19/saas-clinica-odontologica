@@ -8,11 +8,15 @@ export interface ButtonProps
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default: "bg-primary text-primary-foreground border border-primary/40 hover:opacity-90",
-  secondary: "bg-secondary text-secondary-foreground hover:opacity-90",
-  outline: "border border-input bg-background hover:bg-accent",
-  ghost: "border border-input/50 bg-transparent hover:bg-accent",
-  destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
+  default:
+    "border border-primary/20 bg-primary text-primary-foreground shadow-[0_12px_24px_rgba(37,99,235,0.25)] hover:brightness-105",
+  secondary:
+    "border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80",
+  outline:
+    "border border-border bg-white text-foreground hover:bg-muted",
+  ghost: "bg-transparent text-foreground hover:bg-muted",
+  destructive:
+    "border border-destructive/30 bg-destructive text-destructive-foreground hover:brightness-105",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -26,10 +30,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+        "inline-flex items-center justify-center rounded-2xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
-        "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/20",
+        "hover:-translate-y-0.5",
         className
       )}
       {...props}

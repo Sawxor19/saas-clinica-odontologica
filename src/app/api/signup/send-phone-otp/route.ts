@@ -28,8 +28,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    await sendPhoneOtp(parsed.data.intentId, ip, userAgent ?? undefined);
-    return NextResponse.json({ ok: true });
+    const result = await sendPhoneOtp(parsed.data.intentId, ip, userAgent ?? undefined);
+    return NextResponse.json({ ok: true, devOtp: result?.devOtp });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message || "Falha ao enviar OTP." }, { status: 400 });
   }

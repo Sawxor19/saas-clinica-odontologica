@@ -24,13 +24,13 @@ export function PayablesForm() {
   return (
     <form action={addPayableAction} className="grid gap-3 md:grid-cols-6">
       <input
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground md:col-span-2"
         name="name"
         placeholder="Nome"
         required
       />
       <input
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         name="amount"
         type="number"
         min="0"
@@ -38,14 +38,14 @@ export function PayablesForm() {
         required
       />
       <input
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         name="due_date"
         type="date"
         required
       />
       <select
         name="payment_method"
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         value={method}
         onChange={(event) => setMethod(event.target.value)}
       >
@@ -57,7 +57,7 @@ export function PayablesForm() {
       </select>
       <select
         name="installments"
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         disabled={!showInstallments}
         defaultValue=""
       >
@@ -70,7 +70,7 @@ export function PayablesForm() {
       </select>
       <select
         name="is_paid"
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
         defaultValue="false"
       >
         <option value="false">Não pago</option>

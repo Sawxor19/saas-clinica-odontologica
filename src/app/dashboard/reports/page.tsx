@@ -28,27 +28,27 @@ export default async function ReportsPage({
                 name="start"
                 type="date"
                 defaultValue={start ?? ""}
-                className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+                className="h-10 rounded-2xl border border-input bg-white px-4 text-xs text-foreground"
               />
               <input
                 name="end"
                 type="date"
                 defaultValue={end ?? ""}
-                className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+                className="h-10 rounded-2xl border border-input bg-white px-4 text-xs text-foreground"
               />
-              <button className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent">
+              <button className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-xs font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted">
                 Filtrar
               </button>
             </form>
             <Link
               href={`/api/reports/export?type=procedures${start ? `&start=${start}` : ""}${end ? `&end=${end}` : ""}`}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent"
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-xs font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
             >
               Exportar procedimentos (CSV)
             </Link>
             <Link
               href={`/api/reports/export?type=dentists${start ? `&start=${start}` : ""}${end ? `&end=${end}` : ""}`}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent"
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-xs font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
             >
               Exportar dentistas (CSV)
             </Link>

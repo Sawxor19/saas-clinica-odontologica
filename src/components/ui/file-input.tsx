@@ -37,7 +37,7 @@ export function FileInput({
       />
       <label
         htmlFor={id}
-        className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-lg hover:shadow-emerald-500/20"
+        className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-white px-4 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:bg-muted"
       >
         {label}
       </label>

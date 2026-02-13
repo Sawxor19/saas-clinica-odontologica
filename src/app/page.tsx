@@ -61,13 +61,13 @@ export default function Home() {
             claro e rápido.
           </p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
               30 dias de teste grátis
             </span>
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
               Relatórios em tempo real
             </span>
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
               Segurança clínica (LGPD)
             </span>
           </div>
@@ -186,11 +186,11 @@ export default function Home() {
                     </div>
                   )}
                   {discount > 0 ? (
-                    <div className="mt-2 inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200">
+                    <div className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
                       {discount}% de desconto
                     </div>
                   ) : (
-                    <div className="mt-2 inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200">
+                    <div className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
                       {plan.highlight ?? "Sem fidelidade"}
                     </div>
                   )}

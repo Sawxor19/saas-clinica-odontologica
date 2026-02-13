@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FloatingLabelInput } from "@/components/ui/floating-field";
 
 type MaterialOption = { id: string; name: string };
 
@@ -14,8 +15,13 @@ export function ProcedureForm({ materials }: { materials: MaterialOption[] }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <Input name="name" placeholder="Procedimento" required />
-        <Input name="price" type="number" placeholder="Valor" required />
+        <FloatingLabelInput name="name" label="Procedimento" required />
+        <FloatingLabelInput
+          name="price"
+          label="Valor (ex: 99,90)"
+          inputMode="decimal"
+          required
+        />
       </div>
 
       <div className="space-y-2">
@@ -24,7 +30,7 @@ export function ProcedureForm({ materials }: { materials: MaterialOption[] }) {
           <div key={`material-${index}`} className="grid gap-3 md:grid-cols-3">
             <select
               name="material_id"
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
               value={row.material_id}
               onChange={(event) => {
                 const next = [...rows];

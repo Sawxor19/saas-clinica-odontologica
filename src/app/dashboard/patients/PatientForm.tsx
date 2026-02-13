@@ -97,7 +97,7 @@ export function PatientForm({ dentists }: { dentists: DentistOption[] }) {
           <label className="text-sm font-medium">Dentista responsável</label>
           <select
             name="dentist_id"
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-12 rounded-2xl border border-input bg-white px-4 text-sm text-foreground"
           >
             <option value="">Não definido</option>
             {dentists.map((dentist) => (

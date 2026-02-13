@@ -62,7 +62,7 @@ export function AppointmentActions({
             <input type="hidden" name="payment_status" value="paid" />
             <select
               name="payment_method"
-              className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+              className="h-10 rounded-2xl border border-input bg-white px-3 text-xs text-foreground"
               defaultValue={paymentMethod ?? ""}
               required
             >
