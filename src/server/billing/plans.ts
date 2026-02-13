@@ -1,7 +1,7 @@
 export type PlanKey = "trial" | "monthly" | "quarterly" | "semiannual" | "annual";
 
 export const planLabels: Record<PlanKey, string> = {
-  trial: "FREE TRIAL – 30 dias",
+  trial: "Plano inicial (30 dias)",
   monthly: "Mensal",
   quarterly: "Trimestral",
   semiannual: "Semestral",
@@ -17,7 +17,7 @@ export const planDays: Record<PlanKey, number> = {
 };
 
 export const planAmounts: Record<PlanKey, number> = {
-  trial: 0.01,
+  trial: 49.9,
   monthly: 49.9,
   quarterly: 139.9,
   semiannual: 269.9,

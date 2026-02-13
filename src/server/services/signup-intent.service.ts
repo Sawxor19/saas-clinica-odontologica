@@ -85,12 +85,12 @@ export async function createSignupIntent(input: {
 
   const existingCpf = await findSignupIntentByCpfHash(cpfHash);
   if (existingCpf && shouldBlockStatus(existingCpf.status)) {
-    throw new Error("CPF já utilizado para trial.");
+    throw new Error("CPF já utilizado para cadastro.");
   }
 
   const existingPhone = await findSignupIntentByPhoneHash(phoneHash);
   if (existingPhone && shouldBlockStatus(existingPhone.status)) {
-    throw new Error("Telefone já utilizado para trial.");
+    throw new Error("Telefone já utilizado para cadastro.");
   }
 
   const existingByEmail = await findSignupIntentByEmail(input.email);
@@ -300,7 +300,7 @@ export async function ensureReadyForCheckout(intentId: string) {
       status: "PENDING_VERIFICATIONS",
       updated_at: new Date().toISOString(),
     });
-    throw new Error("Email ainda não confirmado.");
+    throw new Error("E-mail ainda não confirmado.");
   }
 
   if (REQUIRE_PHONE_VERIFICATION && !intent.phone_verified_at) {
