@@ -58,7 +58,7 @@ export default function SignupVerifyClient() {
     }
     setEmailVerified(Boolean(data.emailVerified));
     setPhoneVerified(Boolean(data.phoneVerified));
-    setMessage(data.emailVerified ? "Email confirmado!" : "E-mail ainda não confirmado.");
+    setMessage(data.emailVerified ? "E-mail confirmado!" : "E-mail ainda não confirmado.");
   }
 
 
@@ -75,17 +75,17 @@ export default function SignupVerifyClient() {
     const data = await response.json().catch(() => ({}));
     setLoading(false);
     if (!response.ok) {
-      setError(data?.error || "Nao foi possivel reenviar o email.");
+      setError(data?.error || "Não foi possível reenviar o e-mail.");
       return;
     }
     setEmailCooldown(60);
-    setMessage("Email de confirmacao reenviado.");
+    setMessage("E-mail de confirmação reenviado.");
   }
 
   async function handleSendOtp() {
     if (!intentId) return;
     if (!requirePhoneVerification) {
-      setMessage("Verificacao de telefone desativada.");
+      setMessage("Verificação de telefone desativada.");
       return;
     }
     setError(null);
@@ -105,10 +105,10 @@ export default function SignupVerifyClient() {
     setCooldown(60);
     if (data?.devOtp) {
       setOtp(String(data.devOtp));
-      setMessage(`Codigo enviado (dev): ${data.devOtp}`);
+      setMessage(`Código enviado (dev): ${data.devOtp}`);
       return;
     }
-    setMessage("Codigo enviado. Verifique seu SMS/WhatsApp.");
+    setMessage("Código enviado. Verifique seu SMS/WhatsApp.");
   }
 
   async function handleVerifyOtp(event: React.FormEvent<HTMLFormElement>) {
@@ -151,11 +151,11 @@ export default function SignupVerifyClient() {
           <div className="space-y-2 rounded-lg border p-4">
             <div className="font-medium">1) Confirme seu e-mail</div>
             <p className="text-sm text-muted-foreground">
-              Acesse sua caixa de entrada e clique no link de confirmacao.
+              Acesse sua caixa de entrada e clique no link de confirmação.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={handleCheckEmail} disabled={loading || !intentId}>
-                Ja confirmei
+                Já confirmei
               </Button>
               <Button
                 type="button"
@@ -163,7 +163,7 @@ export default function SignupVerifyClient() {
                 onClick={handleResendEmail}
                 disabled={loading || !intentId || emailCooldown > 0}
               >
-                {emailCooldown > 0 ? `Reenviar em ${emailCooldown}s` : "Reenviar email"}
+                {emailCooldown > 0 ? `Reenviar em ${emailCooldown}s` : "Reenviar e-mail"}
               </Button>
             </div>
             <div className="text-sm">
@@ -175,7 +175,7 @@ export default function SignupVerifyClient() {
             <div className="space-y-2 rounded-lg border p-4">
               <div className="font-medium">2) Verifique seu telefone</div>
               <p className="text-sm text-muted-foreground">
-                Enviamos um codigo por SMS/WhatsApp para o telefone informado.
+                Enviamos um código por SMS/WhatsApp para o telefone informado.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -183,19 +183,19 @@ export default function SignupVerifyClient() {
                   onClick={handleSendOtp}
                   disabled={loading || cooldown > 0 || !intentId}
                 >
-                  {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar codigo"}
+                  {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
                 </Button>
               </div>
               <form className="mt-3 grid gap-2" onSubmit={handleVerifyOtp}>
                 <Input
                   name="otp"
-                  placeholder="Digite o codigo"
+                  placeholder="Digite o código"
                   value={otp}
                   onChange={(event) => setOtp(event.target.value)}
                   required
                 />
                 <Button type="submit" disabled={loading || !intentId}>
-                  Validar codigo
+                  Validar código
                 </Button>
               </form>
               <div className="text-sm">
@@ -206,7 +206,7 @@ export default function SignupVerifyClient() {
             <div className="space-y-2 rounded-lg border p-4">
               <div className="font-medium">2) Telefone</div>
               <p className="text-sm text-muted-foreground">
-                A verificacao de telefone esta desativada.
+                A verificação de telefone está desativada.
               </p>
               <div className="text-sm">Status: Verificado</div>
             </div>
