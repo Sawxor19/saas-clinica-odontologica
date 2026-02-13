@@ -2,10 +2,10 @@ export default function Home() {
   const pricing = [
     {
       key: "trial",
-      name: "Plano inicial",
-      price: 49.9,
+      name: "Teste 30 dias",
+      price: 0.01,
       period: "30 dias",
-      highlight: "Acesso completo",
+      highlight: "Teste completo",
     },
     {
       key: "monthly",
@@ -62,7 +62,7 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
-              30 dias no plano inicial
+              30 dias de teste grátis
             </span>
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
               Relatórios em tempo real
@@ -118,7 +118,7 @@ export default function Home() {
             <div className="rounded-lg border p-4">
               <p className="text-sm font-medium">Cobrança recorrente</p>
               <p className="text-sm text-muted-foreground">
-                Plano inicial + planos mensais e anuais com Stripe.
+                Teste 30 dias + planos mensais e anuais com Stripe.
               </p>
             </div>
             <div className="rounded-lg border p-4">
