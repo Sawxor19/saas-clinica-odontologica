@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { syncSubscriptionByCustomerId } from "@/server/billing/service";
+import { reconcileProvisioningFromCheckoutSessionId } from "@/server/services/provisioning.service";
 import { getAppUrl } from "@/server/config/app-url";
 
 type SignupState = { error?: string };
@@ -28,7 +29,7 @@ export async function loginAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from("profiles")
       .select("clinic_id, stripe_customer_id")
       .eq("user_id", user.id)
@@ -36,17 +37,59 @@ export async function loginAction(formData: FormData) {
 
     if (!profile?.clinic_id) {
       const admin = supabaseAdmin();
-      const { data: intent } = await admin
+      const { data: intentByUser } = await admin
+        .from("signup_intents")
+        .select("id, checkout_session_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const intent =
+        intentByUser ??
+        (
+          await admin
+            .from("signup_intents")
+            .select("id, checkout_session_id")
+            .eq("email", user.email ?? "")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        ).data;
+
+      if (intent?.checkout_session_id) {
+        try {
+          await reconcileProvisioningFromCheckoutSessionId(intent.checkout_session_id);
+        } catch {
+          // Best effort recovery; fallback redirects below.
+        }
+
+        const { data: recoveredProfile } = await admin
+          .from("profiles")
+          .select("clinic_id, stripe_customer_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (recoveredProfile?.clinic_id) {
+          profile = recoveredProfile;
+        } else if (intent.id) {
+          redirect(`/signup/success?session_id=${intent.checkout_session_id}&intentId=${intent.id}`);
+        }
+      }
+
+      if (!profile?.clinic_id) {
+        const { data: intentFallback } = await admin
         .from("signup_intents")
         .select("id")
         .eq("email", user.email ?? "")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
-      if (intent?.id) {
-        redirect(`/signup/verify?intentId=${intent.id}`);
+        .maybeSingle();
+        if (intentFallback?.id) {
+          redirect(`/signup/verify?intentId=${intentFallback.id}`);
+        }
+        redirect("/signup");
       }
-      redirect("/signup");
     }
 
     let { data: clinic } = await supabase
