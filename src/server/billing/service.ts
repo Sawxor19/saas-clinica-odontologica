@@ -1,15 +1,13 @@
 import type Stripe from "stripe";
 import { stripe as stripeClient } from "@/server/billing/stripe";
-import { PlanKey, planDays } from "@/server/billing/plans";
-import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { PlanKey } from "@/server/billing/plans";
 import { logger } from "@/lib/logger";
-import {
-  ensureReadyForCheckout,
-  markSignupConverted,
-} from "@/server/services/signup-intent.service";
+import { ensureReadyForCheckout } from "@/server/services/signup-intent.service";
 import { getClinicContext } from "@/server/auth/context";
 import { assertPermission } from "@/server/rbac/guard";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
+import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { syncSubscriptionFromStripe } from "@/server/services/provisioning.service";
 
 const planPriceMap: Record<PlanKey, string> = {
   trial: process.env.STRIPE_PRICE_TRIAL || "",
@@ -61,47 +59,13 @@ export async function createCheckoutSessionForClinic(plan: PlanKey) {
       clinic_id: clinicId,
       plan,
       user_id: userId,
+      checkout_kind: "clinic",
     },
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/plans`,
   });
 
   return session.url;
-}
-
-export async function handleClinicCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const clinicId = session.metadata?.clinic_id;
-  const plan = (session.metadata?.plan || "monthly") as PlanKey;
-  if (!clinicId || !session.customer) return;
-
-  const subscriptionId = session.subscription as string | null;
-  const subscription = subscriptionId
-    ? await stripeClient.subscriptions.retrieve(subscriptionId)
-    : null;
-  const status = subscription?.status || "active";
-  const periodEnd = subscription
-    ? new Date(subscription.current_period_end * 1000).toISOString()
-    : new Date(Date.now() + planDays[plan] * 24 * 60 * 60 * 1000).toISOString();
-
-  const admin = supabaseAdmin();
-  await admin.from("subscriptions").upsert({
-    clinic_id: clinicId,
-    stripe_subscription_id: subscriptionId,
-    plan,
-    status,
-    current_period_end: periodEnd,
-  });
-
-  await admin
-    .from("clinics")
-    .update({ subscription_status: status, current_period_end: periodEnd })
-    .eq("id", clinicId);
-
-  await admin
-    .from("profiles")
-    .update({ stripe_customer_id: session.customer })
-    .eq("clinic_id", clinicId)
-    .eq("role", "admin");
 }
 
 export async function createCheckoutSession(input: {
@@ -114,24 +78,55 @@ export async function createCheckoutSession(input: {
   }
 
   const intent = await ensureReadyForCheckout(input.intentId);
-
-  const session = await stripeClient.checkout.sessions.create({
-    mode: "subscription",
-    customer_email: intent.email,
-    line_items: [{ price: priceId, quantity: 1 }],
-    allow_promotion_codes: true,
-    subscription_data: {
-      metadata: { plan: input.plan },
-    },
-    metadata: {
-      intent_id: intent.id,
-      plan: input.plan,
-    },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/signup/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/signup/cancelled`,
-  });
-
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const admin = supabaseAdmin();
+
+  if (intent.checkout_session_id) {
+    try {
+      const existing = await stripeClient.checkout.sessions.retrieve(
+        intent.checkout_session_id
+      );
+
+      if (existing?.url && existing.status === "open") {
+        return existing.url;
+      }
+
+      if (existing?.status === "complete") {
+        return `${appUrl}/signup/success?session_id=${existing.id}&intentId=${intent.id}`;
+      }
+    } catch (error) {
+      logger.warn("Checkout session lookup failed", {
+        intentId: intent.id,
+        checkoutSessionId: intent.checkout_session_id,
+        error: (error as Error).message,
+      });
+    }
+  }
+
+  const session = await stripeClient.checkout.sessions.create(
+    {
+      mode: "subscription",
+      customer_email: intent.email,
+      client_reference_id: intent.id,
+      line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
+      subscription_data: {
+        metadata: { plan: input.plan },
+      },
+      metadata: {
+        intent_id: intent.id,
+        plan: input.plan,
+        user_id: intent.user_id || "",
+        checkout_kind: "signup",
+      },
+      success_url: `${appUrl}/signup/success?session_id={CHECKOUT_SESSION_ID}&intentId=${intent.id}`,
+      cancel_url: `${appUrl}/signup/cancelled?intentId=${intent.id}`,
+    },
+    {
+      idempotencyKey: `signup_checkout:${intent.id}:${input.plan}`,
+    }
+  );
+
   await admin
     .from("signup_intents")
     .update({ checkout_session_id: session.id, updated_at: new Date().toISOString() })
@@ -140,140 +135,8 @@ export async function createCheckoutSession(input: {
   return session.url;
 }
 
-export async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const intentId = session.metadata?.intent_id;
-  const plan = (session.metadata?.plan || "trial") as PlanKey;
-  if (!intentId) return;
-
-  const admin = supabaseAdmin();
-  const { data: intent, error } = await admin
-    .from("signup_intents")
-    .select(
-      "clinic_name, admin_name, email, whatsapp_number, phone_e164, phone_verified_at, cpf_hash, user_id, status"
-    )
-    .eq("id", intentId)
-    .single();
-
-  if (error || !intent) {
-    logger.error("Signup intent not found", { intentId });
-    return;
-  }
-
-  if (intent.status === "CONVERTED") {
-    return;
-  }
-
-  const userId = intent.user_id;
-  if (!userId) {
-    logger.error("Signup intent missing user_id", { intentId });
-    return;
-  }
-
-  const subscriptionId = session.subscription as string | null;
-  const subscription = subscriptionId
-    ? await stripeClient.subscriptions.retrieve(subscriptionId)
-    : null;
-  const status = subscription?.status || "active";
-  const periodEnd = subscription
-    ? new Date(subscription.current_period_end * 1000).toISOString()
-    : new Date(Date.now() + planDays[plan] * 24 * 60 * 60 * 1000).toISOString();
-
-  const { data: existingProfile } = await admin
-    .from("profiles")
-    .select("clinic_id")
-    .eq("user_id", userId)
-    .single();
-
-  let clinicId = existingProfile?.clinic_id ?? null;
-  if (!clinicId) {
-    const { data: clinic, error: clinicError } = await admin
-      .from("clinics")
-      .insert({
-        name: intent.clinic_name || "Clínica",
-        whatsapp_number: intent.whatsapp_number || intent.phone_e164,
-        subscription_status: status,
-        current_period_end: periodEnd,
-      })
-      .select("id")
-      .single();
-
-    if (clinicError || !clinic) {
-      logger.error("Failed to create clinic", { error: clinicError?.message });
-      return;
-    }
-
-    clinicId = clinic.id;
-
-    const profileInsert = await admin.from("profiles").insert({
-      user_id: userId,
-      clinic_id: clinic.id,
-      full_name: intent.admin_name || intent.email,
-      role: "admin",
-      stripe_customer_id: session.customer ?? null,
-      cpf_hash: intent.cpf_hash,
-      phone_e164: intent.phone_e164,
-      phone_verified_at: intent.phone_verified_at,
-    });
-
-    if (profileInsert.error) {
-      logger.error("Failed to create profile", { error: profileInsert.error.message });
-      return;
-    }
-  } else {
-    await admin
-      .from("profiles")
-      .update({
-        stripe_customer_id: session.customer ?? null,
-        cpf_hash: intent.cpf_hash,
-        phone_e164: intent.phone_e164,
-        phone_verified_at: intent.phone_verified_at,
-      })
-      .eq("user_id", userId);
-  }
-
-  await admin.from("subscriptions").upsert({
-    clinic_id: clinicId,
-    stripe_subscription_id: subscriptionId,
-    plan,
-    status,
-    current_period_end: periodEnd,
-  });
-
-  await admin
-    .from("clinics")
-    .update({ subscription_status: status, current_period_end: periodEnd })
-    .eq("id", clinicId);
-
-  await markSignupConverted(intentId);
-}
-
 export async function upsertSubscriptionFromStripe(subscription: Stripe.Subscription) {
-  const admin = supabaseAdmin();
-  const customer = subscription.customer as string;
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("clinic_id")
-    .eq("stripe_customer_id", customer)
-    .single();
-
-  if (!profile) return;
-
-  await admin.from("subscriptions").upsert({
-    clinic_id: profile.clinic_id,
-    stripe_subscription_id: subscription.id,
-    plan: subscription.metadata?.plan || "monthly",
-    status: subscription.status,
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-  });
-
-  await admin
-    .from("clinics")
-    .update({
-      subscription_status: subscription.status,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    })
-    .eq("id", profile.clinic_id);
+  await syncSubscriptionFromStripe(subscription);
 }
 
 export async function syncSubscriptionByCustomerId(customerId: string) {

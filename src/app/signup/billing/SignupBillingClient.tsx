@@ -16,7 +16,7 @@ export default function SignupBillingClient() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleCheckout(plan: PlanKey) {
-    if (!intentId) return;
+    if (!intentId || loadingPlan) return;
     setError(null);
     setLoadingPlan(plan);
     const response = await fetch("/api/billing/checkout", {
@@ -62,7 +62,7 @@ export default function SignupBillingClient() {
               <Button
                 type="button"
                 className="w-full"
-                disabled={loadingPlan === plan || !intentId}
+                disabled={Boolean(loadingPlan) || !intentId}
                 onClick={() => handleCheckout(plan)}
               >
                 {loadingPlan === plan ? "Aguarde..." : "Ir para pagamento"}

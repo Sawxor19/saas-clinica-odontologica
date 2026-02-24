@@ -70,6 +70,20 @@ if (profileErr) {
   process.exit(1);
 }
 
+const { error: membershipErr } = await supabase.from("memberships").upsert(
+  {
+    clinic_id: clinic.id,
+    user_id: user.id,
+    role: "admin",
+  },
+  { onConflict: "clinic_id,user_id" }
+);
+
+if (membershipErr) {
+  console.error("Failed to create membership", membershipErr.message);
+  process.exit(1);
+}
+
 const { error: subErr } = await supabase.from("subscriptions").insert({
   clinic_id: clinic.id,
   stripe_subscription_id: null,

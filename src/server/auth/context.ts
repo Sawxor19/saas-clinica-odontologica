@@ -9,6 +9,15 @@ export type ClinicContext = {
   permissions: PermissionSet;
 };
 
+type Role = "admin" | "dentist" | "assistant" | "receptionist";
+
+function asRole(value: unknown): Role {
+  if (value === "admin" || value === "dentist" || value === "assistant" || value === "receptionist") {
+    return value;
+  }
+  return "assistant";
+}
+
 export async function getClinicContext(): Promise<ClinicContext> {
   const supabase = await supabaseServerClient();
   const {
@@ -20,13 +29,14 @@ export async function getClinicContext(): Promise<ClinicContext> {
     throw new Error("Not authenticated");
   }
 
-  let { data: profile, error: profileError } = await supabase
+  const profileResponse = await supabase
     .from("profiles")
     .select("clinic_id, role, permissions")
     .eq("user_id", user.id)
     .single();
+  let profile = profileResponse.data;
 
-  if (profileError || !profile) {
+  if (profileResponse.error || !profile) {
     const admin = supabaseAdmin();
     const { data: adminProfile } = await admin
       .from("profiles")
@@ -36,55 +46,26 @@ export async function getClinicContext(): Promise<ClinicContext> {
     profile = adminProfile ?? null;
   }
 
-  if (!profile) {
-    const admin = supabaseAdmin();
-    const email = user.email || "admin";
-    const nameSeed = email.split("@")[0] || "Clínica";
-    const clinicName = `Clínica ${nameSeed}`;
+  if (!profile?.clinic_id) {
+    throw new Error("Profile not provisioned");
+  }
 
-    const { data: clinic, error: clinicError } = await admin
-      .from("clinics")
-      .insert({
-        name: clinicName,
-        subscription_status: "inactive",
-        current_period_end: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
+  let role = asRole(profile.role);
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-    if (clinicError || !clinic) {
-      throw new Error("Profile not found");
-    }
-
-    const fullName =
-      (user.user_metadata?.full_name as string | undefined) || email;
-
-    const { error: profileInsertError } = await admin.from("profiles").insert({
-      user_id: user.id,
-      clinic_id: clinic.id,
-      full_name: fullName,
-      role: "admin",
-    });
-
-    if (profileInsertError) {
-      throw new Error("Profile not found");
-    }
-
-    await admin.from("subscriptions").insert({
-      clinic_id: clinic.id,
-      plan: "monthly",
-      status: "inactive",
-      current_period_end: new Date().toISOString(),
-      stripe_subscription_id: null,
-    });
-
-    profile = { clinic_id: clinic.id, role: "admin", permissions: null };
+  if (membership?.role) {
+    role = asRole(membership.role);
   }
 
   return {
     userId: user.id,
     clinicId: profile.clinic_id,
-    role: profile.role,
-    permissions: buildPermissions(profile.role, profile.permissions ?? null),
+    role,
+    permissions: buildPermissions(role, profile.permissions ?? null),
   };
 }

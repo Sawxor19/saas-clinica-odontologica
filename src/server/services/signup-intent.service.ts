@@ -138,7 +138,7 @@ export async function sendPhoneOtp(intentId: string, ip?: string | null, userAge
     throw new Error("Cadastro já concluído.");
   }
   if (intent.status === "BLOCKED" || intent.status === "EXPIRED") {
-    throw new Error("Cadastro indisponível.");
+    throw new Error("Cadastro indisponivel.");
   }
   if (intent.phone_verified_at) {
     throw new Error("Telefone já verificado.");
@@ -201,7 +201,10 @@ export async function sendPhoneOtp(intentId: string, ip?: string | null, userAge
 export async function verifyPhoneOtp(intentId: string, otp: string, ip?: string | null, userAgent?: string | null) {
   const intent = await findSignupIntentById(intentId);
   if (intent.status === "BLOCKED" || intent.status === "EXPIRED") {
-    throw new Error("Cadastro indisponível.");
+    throw new Error("Cadastro indisponivel.");
+  }
+  if (intent.status === "CONVERTED") {
+    throw new Error("Cadastro ja concluido. Faca login.");
   }
   const secret = getSignupSecret();
   const now = new Date();
@@ -291,7 +294,10 @@ export async function refreshEmailVerification(intentId: string) {
 export async function ensureReadyForCheckout(intentId: string) {
   const intent = await findSignupIntentById(intentId);
   if (intent.status === "BLOCKED" || intent.status === "EXPIRED") {
-    throw new Error("Cadastro indisponível.");
+    throw new Error("Cadastro indisponivel.");
+  }
+  if (intent.status === "CONVERTED") {
+    throw new Error("Cadastro ja concluido. Faca login.");
   }
   const emailVerified = await assertEmailVerifiedBySupabase(intent.user_id);
   if (!emailVerified) {

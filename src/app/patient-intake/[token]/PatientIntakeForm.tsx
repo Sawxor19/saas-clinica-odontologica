@@ -88,12 +88,11 @@ export function PatientIntakeForm({
   useEffect(() => {
     const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8) {
-      setCepStatus("idle");
       return;
     }
     if (digits === lastCepRef.current) return;
     lastCepRef.current = digits;
-    setCepStatus("loading");
+    queueMicrotask(() => setCepStatus("loading"));
 
     fetch(`https://viacep.com.br/ws/${digits}/json/`)
       .then((response) => response.json())
@@ -196,7 +195,14 @@ export function PatientIntakeForm({
         placeholder="CEP"
         required
         value={cep}
-        onChange={(event) => setCep(maskCEP(event.target.value))}
+        onChange={(event) => {
+          const masked = maskCEP(event.target.value);
+          setCep(masked);
+          if (masked.replace(/\D/g, "").length !== 8) {
+            lastCepRef.current = "";
+            setCepStatus("idle");
+          }
+        }}
       />
       <Input
         name="address"

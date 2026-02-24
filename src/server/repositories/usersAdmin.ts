@@ -34,22 +34,38 @@ export async function insertProfileAdmin(input: {
   photo_path?: string | null;
 }) {
   const admin = supabaseAdmin();
-  const { error } = await admin.from("profiles").upsert({
-    user_id: input.user_id,
-    clinic_id: input.clinic_id,
-    full_name: input.full_name,
-    role: input.role,
-    permissions: input.permissions ?? null,
-    phone: input.phone ?? null,
-    cpf: input.cpf ?? null,
-    cro: input.cro ?? null,
-    birth_date: input.birth_date ?? null,
-    address: input.address ?? null,
-    cep: input.cep ?? null,
-    photo_path: input.photo_path ?? null,
-  }, { onConflict: "user_id" });
-  if (error) {
-    throw new Error(error.message);
+  const { error: profileError } = await admin.from("profiles").upsert(
+    {
+      user_id: input.user_id,
+      clinic_id: input.clinic_id,
+      full_name: input.full_name,
+      role: input.role,
+      permissions: input.permissions ?? null,
+      phone: input.phone ?? null,
+      cpf: input.cpf ?? null,
+      cro: input.cro ?? null,
+      birth_date: input.birth_date ?? null,
+      address: input.address ?? null,
+      cep: input.cep ?? null,
+      photo_path: input.photo_path ?? null,
+    },
+    { onConflict: "user_id" }
+  );
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  const { error: membershipError } = await admin.from("memberships").upsert(
+    {
+      clinic_id: input.clinic_id,
+      user_id: input.user_id,
+      role: input.role,
+    },
+    { onConflict: "clinic_id,user_id" }
+  );
+
+  if (membershipError) {
+    throw new Error(membershipError.message);
   }
 }
 

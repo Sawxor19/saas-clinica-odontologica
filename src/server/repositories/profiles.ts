@@ -38,6 +38,14 @@ export async function updateProfileRole(
     .eq("user_id", userId);
 
   if (error) throw new Error(error.message);
+
+  const { error: membershipError } = await supabase
+    .from("memberships")
+    .update({ role })
+    .eq("clinic_id", clinicId)
+    .eq("user_id", userId);
+
+  if (membershipError) throw new Error(membershipError.message);
 }
 
 export async function listProfilesByIds(clinicId: string, userIds: string[]) {

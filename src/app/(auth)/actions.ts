@@ -4,83 +4,13 @@ import { redirect } from "next/navigation";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { syncSubscriptionByCustomerId } from "@/server/billing/service";
-import { z } from "zod";
-
-const signupSchema = z.object({
-  clinicName: z.string().min(2, "Informe o nome da clínica."),
-  adminName: z.string().min(2, "Informe o nome do admin."),
-  email: z.string().email("Email inválido."),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres."),
-  whatsappNumber: z.string().min(8, "Informe um WhatsApp válido."),
-});
 
 type SignupState = { error?: string };
 
-export async function signupAction(_: SignupState, formData: FormData) {
-  const parsed = signupSchema.safeParse({
-    clinicName: formData.get("clinicName"),
-    adminName: formData.get("adminName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    whatsappNumber: formData.get("whatsappNumber"),
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message || "Dados inválidos." };
-  }
-
-  const values = parsed.data;
-
-  const supabase = await supabaseServerClient();
-  const { data: signupData, error: signupError } = await supabase.auth.signUp({
-    email: values.email,
-    password: values.password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/login`,
-    },
-  });
-
-  if (signupError || !signupData?.user) {
-    return { error: signupError?.message || "Falha ao criar usuário." };
-  }
-
-  const admin = supabaseAdmin();
-
-  const { data: clinic, error: clinicError } = await admin
-    .from("clinics")
-    .insert({
-      name: values.clinicName,
-      whatsapp_number: values.whatsappNumber,
-      subscription_status: "inactive",
-      current_period_end: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (clinicError || !clinic) {
-    return { error: clinicError?.message || "Falha ao criar clínica." };
-  }
-
-  const { error: profileError } = await admin.from("profiles").insert({
-    user_id: signupData.user.id,
-    clinic_id: clinic.id,
-    full_name: values.adminName,
-    role: "admin",
-  });
-
-  if (profileError) {
-    return { error: profileError.message };
-  }
-
-  await admin.from("subscriptions").insert({
-    clinic_id: clinic.id,
-    plan: "monthly",
-    status: "inactive",
-    current_period_end: new Date().toISOString(),
-    stripe_subscription_id: null,
-  });
-
-  redirect("/signup/plans");
+export async function signupAction(_: SignupState, _formData: FormData) {
+  void _;
+  void _formData;
+  return { error: "Use o fluxo /signup para concluir cadastro com provisionamento seguro." };
 }
 
 export async function loginAction(formData: FormData) {
@@ -153,7 +83,7 @@ export async function loginAction(formData: FormData) {
       const refreshedNotExpired = refreshedEnd ? refreshedEnd > now : false;
 
       if (!refreshedActive || !refreshedNotExpired) {
-      redirect("/billing/plans");
+        redirect("/billing/plans");
       }
     }
   }
@@ -173,7 +103,9 @@ export async function requestPasswordResetAction(formData: FormData) {
     redirect("/forgot-password?error=Informe%20o%20email.");
   }
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password`;
+  const redirectTo = `${
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  }/reset-password`;
   const supabase = await supabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
