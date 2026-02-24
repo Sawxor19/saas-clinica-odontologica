@@ -21,6 +21,9 @@ type ProvisioningResponse = {
   error?: string;
 };
 
+const POLL_INTERVAL_MS = 2000;
+const MAX_AUTO_POLL_ATTEMPTS = 45;
+
 const statusLabel: Record<string, string> = {
   received: "Recebido",
   user_ok: "Usuario confirmado",
@@ -50,6 +53,8 @@ export default function SignupSuccessClient() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
+    setError(null);
+
     if (!sessionId && !intentId) {
       setLoading(false);
       setReady(true);
@@ -94,13 +99,13 @@ export default function SignupSuccessClient() {
 
     setReady(false);
     setLoading(true);
-    setError(null);
     return false;
   }, [intentId, sessionId]);
 
   useEffect(() => {
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | null = null;
+    let attempts = 0;
 
     const run = async () => {
       try {
@@ -108,6 +113,20 @@ export default function SignupSuccessClient() {
         if (cancelled || stop) return;
         interval = setInterval(async () => {
           if (cancelled) return;
+
+          attempts += 1;
+          if (attempts >= MAX_AUTO_POLL_ATTEMPTS) {
+            setLoading(false);
+            setError(
+              "O provisionamento demorou mais que o esperado. Clique em Atualizar status para tentar novamente."
+            );
+            if (interval) {
+              clearInterval(interval);
+              interval = null;
+            }
+            return;
+          }
+
           try {
             const shouldStop = await fetchStatus();
             if (shouldStop && interval) {
@@ -122,7 +141,7 @@ export default function SignupSuccessClient() {
               interval = null;
             }
           }
-        }, 2000);
+        }, POLL_INTERVAL_MS);
       } catch (initialError) {
         setLoading(false);
         setError((initialError as Error).message);
@@ -149,7 +168,7 @@ export default function SignupSuccessClient() {
             : "Estamos concluindo o provisionamento de usuario, clinica e assinatura."}
         </p>
         <div className="rounded-md border px-3 py-2 text-sm">
-          {loading ? "Processando..." : statusMessage}
+          {loading ? `Processando... ${statusMessage}` : statusMessage}
         </div>
         {error ? (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

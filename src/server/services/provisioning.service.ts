@@ -208,7 +208,8 @@ async function provisionCheckoutSession(input: {
   const { session, stripeEventId } = input;
   const stripeCustomerId = asString(session.customer);
   const stripeSubscriptionId = asString(session.subscription);
-  const intentId = asString(session.metadata?.intent_id);
+  const intentId =
+    asString(session.metadata?.intent_id) || asString(session.client_reference_id);
   const metadataUserId = asString(session.metadata?.user_id);
   const metadataClinicId = asString(session.metadata?.clinic_id);
   const payload = {
@@ -488,6 +489,29 @@ async function provisionCheckoutSession(input: {
   }
 }
 
+export async function reconcileProvisioningFromCheckoutSessionId(
+  checkoutSessionId: string
+) {
+  const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+  if (!session?.id) {
+    return null;
+  }
+
+  const shouldProvision =
+    session.status === "complete" ||
+    session.payment_status === "paid" ||
+    session.payment_status === "no_payment_required";
+
+  if (!shouldProvision) {
+    return null;
+  }
+
+  return provisionCheckoutSession({
+    session,
+    stripeEventId: null,
+  });
+}
+
 export async function syncSubscriptionFromStripe(subscription: Stripe.Subscription) {
   const customerId = asString(subscription.customer);
   if (!customerId) return;
@@ -733,7 +757,7 @@ export async function getProvisioningStatus(input: {
   intentId?: string | null;
 }) {
   const admin = supabaseAdmin();
-  const job = await findProvisioningJobBySessionOrIntent({
+  let job = await findProvisioningJobBySessionOrIntent({
     checkoutSessionId: input.checkoutSessionId,
     intentId: input.intentId,
   });
@@ -779,8 +803,49 @@ export async function getProvisioningStatus(input: {
     }
   }
 
-  const ready =
-    job?.status === "done" || Boolean(subscription && ACTIVE_ACCESS_STATUSES.has(subscription.status));
+  let ready =
+    job?.status === "done" ||
+    Boolean(subscription && ACTIVE_ACCESS_STATUSES.has(subscription.status));
+
+  if (input.checkoutSessionId && !ready && job?.status !== "failed") {
+    try {
+      await reconcileProvisioningFromCheckoutSessionId(input.checkoutSessionId);
+      job = await findProvisioningJobBySessionOrIntent({
+        checkoutSessionId: input.checkoutSessionId,
+        intentId: input.intentId,
+      });
+    } catch (error) {
+      logger.warn("Provisioning reconcile failed during status check", {
+        checkoutSessionId: input.checkoutSessionId,
+        intentId: input.intentId,
+        error: (error as Error).message,
+      });
+    }
+
+    if (job?.clinic_id && clinicId !== job.clinic_id) {
+      clinicId = job.clinic_id;
+      const { data, error } = await admin
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data) {
+        subscription = {
+          status: data.status as string,
+          current_period_end: data.current_period_end as string | null,
+        };
+      }
+    }
+
+    ready =
+      job?.status === "done" ||
+      Boolean(subscription && ACTIVE_ACCESS_STATUSES.has(subscription.status));
+  }
 
   return {
     ready,

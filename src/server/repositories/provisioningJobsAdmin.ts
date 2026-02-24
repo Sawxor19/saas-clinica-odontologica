@@ -66,10 +66,69 @@ export async function ensureProvisioningJob(
       .insert(basePayload)
       .select("*")
       .single();
-    if (error || !data) {
+
+    if (!error && data) {
+      return data as ProvisioningJob;
+    }
+
+    if (!isUniqueViolation(error)) {
       throw new Error(error?.message || "Failed to create provisioning job");
     }
-    return data as ProvisioningJob;
+
+    let existing: ProvisioningJob | null = null;
+
+    if (input.checkoutSessionId) {
+      const { data: existingBySession, error: existingBySessionError } = await admin
+        .from("provisioning_jobs")
+        .select("*")
+        .eq("stripe_checkout_session_id", input.checkoutSessionId)
+        .maybeSingle();
+
+      if (existingBySessionError) {
+        throw new Error(existingBySessionError.message);
+      }
+
+      existing = (existingBySession as ProvisioningJob | null) ?? null;
+    }
+
+    if (!existing && input.intentId) {
+      const { data: existingByIntent, error: existingByIntentError } = await admin
+        .from("provisioning_jobs")
+        .select("*")
+        .eq("intent_id", input.intentId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingByIntentError) {
+        throw new Error(existingByIntentError.message);
+      }
+
+      existing = (existingByIntent as ProvisioningJob | null) ?? null;
+    }
+
+    if (!existing) {
+      throw new Error("Provisioning job not found");
+    }
+
+    const { data: updated, error: updateError } = await admin
+      .from("provisioning_jobs")
+      .update({
+        ...basePayload,
+        status:
+          existing.status === "done"
+            ? ("done" as ProvisioningJobStatus)
+            : ("received" as ProvisioningJobStatus),
+      })
+      .eq("job_id", existing.job_id)
+      .select("*")
+      .single();
+
+    if (updateError || !updated) {
+      throw new Error(updateError?.message || "Failed to update provisioning job");
+    }
+
+    return updated as ProvisioningJob;
   }
 
   const { data, error } = await admin
