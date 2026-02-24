@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { syncSubscriptionByCustomerId } from "@/server/billing/service";
+import { getAppUrl } from "@/server/config/app-url";
 
 type SignupState = { error?: string };
 
@@ -103,9 +104,7 @@ export async function requestPasswordResetAction(formData: FormData) {
     redirect("/forgot-password?error=Informe%20o%20email.");
   }
 
-  const redirectTo = `${
-    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-  }/reset-password`;
+  const redirectTo = `${getAppUrl()}/reset-password`;
   const supabase = await supabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 

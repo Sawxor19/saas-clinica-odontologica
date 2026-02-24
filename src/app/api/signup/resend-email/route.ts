@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { checkRateLimit } from "@/server/services/rate-limit";
+import { getAppUrl } from "@/server/config/app-url";
 
 const schema = z.object({
   intentId: z.string().uuid(),
@@ -39,11 +40,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = await supabaseServerClient();
+  const appUrl = getAppUrl();
   const { error: resendError } = await supabase.auth.resend({
     type: "signup",
     email: intent.email,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/signup/verify`,
+      emailRedirectTo: `${appUrl}/signup/verify`,
     },
   });
 

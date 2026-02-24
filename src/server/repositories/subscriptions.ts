@@ -6,9 +6,26 @@ export async function getSubscription(clinicId: string) {
     .from("subscriptions")
     .select("id, plan, status, current_period_end, stripe_subscription_id")
     .eq("clinic_id", clinicId)
-    .single();
+    .maybeSingle();
+
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from("clinics")
+    .select("subscription_status, current_period_end")
+    .eq("id", clinicId)
+    .maybeSingle();
+
+  if (clinicError) throw new Error(clinicError.message);
+
+  return {
+    id: null,
+    plan: "monthly",
+    status: clinic?.subscription_status ?? "inactive",
+    current_period_end: clinic?.current_period_end ?? null,
+    stripe_subscription_id: null,
+  };
 }
 
 export async function listPaymentHistory(clinicId: string) {

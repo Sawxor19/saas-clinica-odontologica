@@ -8,6 +8,7 @@ import { assertPermission } from "@/server/rbac/guard";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { syncSubscriptionFromStripe } from "@/server/services/provisioning.service";
+import { getAppUrl } from "@/server/config/app-url";
 
 const planPriceMap: Record<PlanKey, string> = {
   trial: process.env.STRIPE_PRICE_TRIAL || "",
@@ -25,6 +26,7 @@ export async function createCheckoutSessionForClinic(plan: PlanKey) {
 
   const { permissions, userId, clinicId } = await getClinicContext();
   assertPermission(permissions, "manageBilling");
+  const appUrl = getAppUrl();
 
   const supabase = await supabaseServerClient();
   const { data: profile } = await supabase
@@ -61,8 +63,8 @@ export async function createCheckoutSessionForClinic(plan: PlanKey) {
       user_id: userId,
       checkout_kind: "clinic",
     },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/plans`,
+    success_url: `${appUrl}/billing`,
+    cancel_url: `${appUrl}/billing/plans`,
   });
 
   return session.url;
@@ -78,7 +80,7 @@ export async function createCheckoutSession(input: {
   }
 
   const intent = await ensureReadyForCheckout(input.intentId);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
   const admin = supabaseAdmin();
 
   if (intent.checkout_session_id) {
@@ -157,6 +159,7 @@ export async function syncSubscriptionByCustomerId(customerId: string) {
 export async function createBillingPortalSession() {
   const { permissions, userId, clinicId } = await getClinicContext();
   assertPermission(permissions, "manageBilling");
+  const appUrl = getAppUrl();
 
   const supabase = await supabaseServerClient();
   const { data: profile } = await supabase
@@ -181,7 +184,7 @@ export async function createBillingPortalSession() {
 
   const session = await stripeClient.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
+    return_url: `${appUrl}/billing`,
   });
 
   return session.url;

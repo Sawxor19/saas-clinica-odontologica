@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { createSignupIntent } from "@/server/services/signup-intent.service";
+import { getAppUrl } from "@/server/config/app-url";
 
 const schema = z.object({
   clinicName: z.string().min(2, "Informe o nome da clínica."),
@@ -29,13 +30,14 @@ export async function POST(request: Request) {
 
   const { clinicName, adminName, email, password, cpf, phone } = parsed.data;
   const { ip, userAgent } = getRequestContext(request);
+  const appUrl = getAppUrl();
 
   const supabase = await supabaseServerClient();
   const { data: signupData, error: signupError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/signup/verify`,
+      emailRedirectTo: `${appUrl}/signup/verify`,
     },
   });
 

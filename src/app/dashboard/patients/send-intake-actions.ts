@@ -3,6 +3,7 @@
 import crypto from "crypto";
 import { getClinicContext } from "@/server/auth/context";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { getAppUrl } from "@/server/config/app-url";
 
 type IntakeLinkResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -53,10 +54,7 @@ export async function sendIntakeLinkAction(formData: FormData): Promise<IntakeLi
       return { ok: false, error: linkError.message };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!appUrl) {
-      return { ok: false, error: "URL do app não configurada" };
-    }
+    const appUrl = getAppUrl();
 
     return { ok: true, url: `${appUrl}/patient-intake/${token}` };
   } catch (error) {
