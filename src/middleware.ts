@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/signup/success",
   "/signup/cancelled",
   "/api/signup",
+  "/api/account/delete",
   "/api/billing/checkout",
   "/api/stripe/webhook",
   "/patient-intake",

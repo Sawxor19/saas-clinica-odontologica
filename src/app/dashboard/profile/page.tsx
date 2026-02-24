@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
+import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { getClinicContext } from "@/server/auth/context";
 import { updateProfileAction } from "@/app/dashboard/profile/actions";
+import { DeleteAccountCard } from "@/app/dashboard/profile/DeleteAccountCard";
 
 export default async function ProfilePage() {
   const { clinicId } = await getClinicContext();
@@ -16,21 +18,30 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, cpf, address, cep")
+    .select("full_name, cpf, address, cep, role")
     .eq("user_id", user?.id ?? "")
     .single();
 
   const { data: clinic } = await supabase
     .from("clinics")
-    .select("name, whatsapp_number, timezone")
+    .select("name, whatsapp_number, timezone, owner_user_id")
     .eq("id", clinicId)
     .single();
+
+  const admin = supabaseAdmin();
+  const { count: membershipCount } = await admin
+    .from("memberships")
+    .select("user_id", { count: "exact", head: true })
+    .eq("clinic_id", clinicId);
+
+  const canDeleteOwnAccount =
+    profile?.role === "admin" && Boolean(user?.id && clinic?.owner_user_id === user.id);
 
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         title="Meu perfil"
-        description="Confira e complete os dados da clínica e do administrador."
+        description="Confira e complete os dados da clinica e do administrador."
       />
 
       <Card>
@@ -46,13 +57,13 @@ export default async function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dados da clínica</CardTitle>
+          <CardTitle>Dados da clinica</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4 md:grid-cols-2" action={updateProfileAction}>
             <Input
               name="clinic_name"
-              placeholder="Nome da clínica"
+              placeholder="Nome da clinica"
               defaultValue={clinic?.name ?? ""}
               required
             />
@@ -68,7 +79,7 @@ export default async function ProfilePage() {
             />
             <Input
               name="address"
-              placeholder="Endereço da clínica"
+              placeholder="Endereco da clinica"
               defaultValue={profile?.address ?? ""}
               className="md:col-span-2"
             />
@@ -76,7 +87,7 @@ export default async function ProfilePage() {
             <Input name="cpf" placeholder="CPF/CNPJ" defaultValue={profile?.cpf ?? ""} />
             <Input
               name="full_name"
-              placeholder="Nome do responsável"
+              placeholder="Nome do responsavel"
               defaultValue={profile?.full_name ?? ""}
               className="md:col-span-2"
             />
@@ -84,6 +95,19 @@ export default async function ProfilePage() {
               <Button type="submit">Salvar</Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle>Zona de perigo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DeleteAccountCard
+            email={user?.email ?? ""}
+            canDeleteOwnAccount={canDeleteOwnAccount}
+            membershipCount={membershipCount ?? 0}
+          />
         </CardContent>
       </Card>
     </div>
