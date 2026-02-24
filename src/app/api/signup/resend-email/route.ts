@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     type: "signup",
     email: intent.email,
     options: {
-      emailRedirectTo: `${appUrl}/signup/verify`,
+      emailRedirectTo: `${appUrl}/signup/verify?intentId=${parsed.data.intentId}`,
     },
   });
 

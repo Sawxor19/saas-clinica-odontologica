@@ -2,34 +2,44 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { supabaseClient } from "@/server/db/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
+type CheckEmailResponse = {
+  emailVerified?: boolean;
+  error?: string;
+};
+
+async function refreshEmailVerification(intentId: string): Promise<CheckEmailResponse> {
+  const response = await fetch("/api/signup/check-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ intentId }),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as CheckEmailResponse;
+  if (!response.ok) {
+    return { error: data?.error || "Nao foi possivel verificar o e-mail." };
+  }
+
+  return data;
+}
 
 export default function SignupVerifyClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const intentId = useMemo(() => params.get("intentId") || "", [params]);
+  const intentIdFromQuery = useMemo(() => params.get("intentId") || "", [params]);
+  const code = useMemo(() => params.get("code") || "", [params]);
 
-  const requirePhoneVerification = process.env.NEXT_PUBLIC_REQUIRE_PHONE_VERIFICATION === "true";
-
+  const [intentId, setIntentId] = useState(intentIdFromQuery);
   const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(!requirePhoneVerification);
-  const [otp, setOtp] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [emailCooldown, setEmailCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
-  useEffect(() => {
-    if (!cooldown) return;
-    const timer = setInterval(
-      () => setCooldown((value) => Math.max(0, value - 1)),
-      1000
-    );
-    return () => clearInterval(timer);
-  }, [cooldown]);
   useEffect(() => {
     if (!emailCooldown) return;
     const timer = setInterval(
@@ -39,101 +49,127 @@ export default function SignupVerifyClient() {
     return () => clearInterval(timer);
   }, [emailCooldown]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function bootstrap() {
+      setInitializing(true);
+      setError(null);
+
+      const supabase = supabaseClient();
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          const { data } = await supabase.auth.getSession();
+          if (!data.session) {
+            if (!active) return;
+            setError("Link invalido ou expirado. Solicite novo e-mail de confirmacao.");
+            setInitializing(false);
+            return;
+          }
+        }
+      }
+
+      let resolvedIntentId = intentIdFromQuery;
+
+      if (!resolvedIntentId) {
+        const resolveResponse = await fetch("/api/signup/resolve-intent", { method: "POST" });
+        const resolveData = (await resolveResponse.json().catch(() => ({}))) as {
+          intentId?: string;
+          emailVerified?: boolean;
+          error?: string;
+        };
+
+        if (!resolveResponse.ok || !resolveData.intentId) {
+          if (!active) return;
+          setError(resolveData?.error || "Nao foi possivel localizar seu cadastro pendente.");
+          setInitializing(false);
+          return;
+        }
+
+        resolvedIntentId = resolveData.intentId;
+        if (!active) return;
+
+        setIntentId(resolvedIntentId);
+        if (typeof resolveData.emailVerified === "boolean") {
+          setEmailVerified(resolveData.emailVerified);
+          if (resolveData.emailVerified) {
+            setMessage("E-mail confirmado!");
+          }
+        }
+        router.replace(`/signup/verify?intentId=${resolvedIntentId}`);
+      } else {
+        if (!active) return;
+        setIntentId(resolvedIntentId);
+      }
+
+      const checkResult = await refreshEmailVerification(resolvedIntentId);
+      if (!active) return;
+
+      if (checkResult.error) {
+        setError(checkResult.error);
+      } else {
+        const verified = Boolean(checkResult.emailVerified);
+        setEmailVerified(verified);
+        if (verified) {
+          setMessage("E-mail confirmado!");
+        }
+      }
+
+      setInitializing(false);
+    }
+
+    void bootstrap();
+    return () => {
+      active = false;
+    };
+  }, [code, intentIdFromQuery, router]);
 
   async function handleCheckEmail() {
     if (!intentId) return;
     setError(null);
     setMessage(null);
     setLoading(true);
-    const response = await fetch("/api/signup/check-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ intentId }),
-    });
-    const data = await response.json().catch(() => ({}));
+
+    const result = await refreshEmailVerification(intentId);
+
     setLoading(false);
-    if (!response.ok) {
-      setError(data?.error || "Não foi possível verificar o e-mail.");
+    if (result.error) {
+      setError(result.error);
       return;
     }
-    setEmailVerified(Boolean(data.emailVerified));
-    setPhoneVerified(Boolean(data.phoneVerified));
-    setMessage(data.emailVerified ? "E-mail confirmado!" : "E-mail ainda não confirmado.");
-  }
 
+    const verified = Boolean(result.emailVerified);
+    setEmailVerified(verified);
+    setMessage(verified ? "E-mail confirmado!" : "E-mail ainda nao confirmado.");
+  }
 
   async function handleResendEmail() {
     if (!intentId) return;
     setError(null);
     setMessage(null);
     setLoading(true);
+
     const response = await fetch("/api/signup/resend-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intentId }),
     });
-    const data = await response.json().catch(() => ({}));
+
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
     setLoading(false);
+
     if (!response.ok) {
-      setError(data?.error || "Não foi possível reenviar o e-mail.");
+      setError(data?.error || "Nao foi possivel reenviar o e-mail.");
       return;
     }
+
     setEmailCooldown(60);
-    setMessage("E-mail de confirmação reenviado.");
+    setMessage("E-mail de confirmacao reenviado.");
   }
 
-  async function handleSendOtp() {
-    if (!intentId) return;
-    if (!requirePhoneVerification) {
-      setMessage("Verificação de telefone desativada.");
-      return;
-    }
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-    const response = await fetch("/api/signup/send-phone-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ intentId }),
-    });
-    const data = await response.json().catch(() => ({}));
-    setLoading(false);
-    if (!response.ok) {
-      setError(data?.error || "Não foi possível enviar o código.");
-      return;
-    }
-    setCooldown(60);
-    if (data?.devOtp) {
-      setOtp(String(data.devOtp));
-      setMessage(`Código enviado (dev): ${data.devOtp}`);
-      return;
-    }
-    setMessage("Código enviado. Verifique seu SMS/WhatsApp.");
-  }
-
-  async function handleVerifyOtp(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!intentId) return;
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-    const response = await fetch("/api/signup/verify-phone", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ intentId, otp }),
-    });
-    const data = await response.json().catch(() => ({}));
-    setLoading(false);
-    if (!response.ok) {
-      setError(data?.error || "Código inválido.");
-      return;
-    }
-    setPhoneVerified(true);
-    setEmailVerified(Boolean(data.emailVerified));
-    setMessage("Telefone verificado com sucesso.");
-  }
-
-  const readyForCheckout = emailVerified && (requirePhoneVerification ? phoneVerified : true);
+  const readyForCheckout = emailVerified && Boolean(intentId);
+  const disableActions = loading || initializing || !intentId;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
@@ -144,73 +180,36 @@ export default function SignupVerifyClient() {
         <CardContent className="space-y-4">
           {!intentId ? (
             <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Intent não encontrado. Volte ao cadastro.
+              Intent nao encontrado. Aguarde a identificacao automatica ou volte ao cadastro.
             </div>
           ) : null}
 
           <div className="space-y-2 rounded-lg border p-4">
             <div className="font-medium">1) Confirme seu e-mail</div>
             <p className="text-sm text-muted-foreground">
-              Acesse sua caixa de entrada e clique no link de confirmação.
+              Acesse sua caixa de entrada e clique no link de confirmacao.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={handleCheckEmail} disabled={loading || !intentId}>
-                Já confirmei
+              <Button type="button" onClick={handleCheckEmail} disabled={disableActions}>
+                Ja confirmei
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleResendEmail}
-                disabled={loading || !intentId || emailCooldown > 0}
+                disabled={disableActions || emailCooldown > 0}
               >
                 {emailCooldown > 0 ? `Reenviar em ${emailCooldown}s` : "Reenviar e-mail"}
               </Button>
             </div>
-            <div className="text-sm">
-              Status: {emailVerified ? "Confirmado" : "Pendente"}
-            </div>
+            <div className="text-sm">Status: {emailVerified ? "Confirmado" : "Pendente"}</div>
           </div>
 
-          {requirePhoneVerification ? (
-            <div className="space-y-2 rounded-lg border p-4">
-              <div className="font-medium">2) Verifique seu telefone</div>
-              <p className="text-sm text-muted-foreground">
-                Enviamos um código por SMS/WhatsApp para o telefone informado.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={loading || cooldown > 0 || !intentId}
-                >
-                  {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
-                </Button>
-              </div>
-              <form className="mt-3 grid gap-2" onSubmit={handleVerifyOtp}>
-                <Input
-                  name="otp"
-                  placeholder="Digite o código"
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={loading || !intentId}>
-                  Validar código
-                </Button>
-              </form>
-              <div className="text-sm">
-                Status: {phoneVerified ? "Verificado" : "Pendente"}
-              </div>
+          {initializing ? (
+            <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+              Validando seu link de confirmacao...
             </div>
-          ) : (
-            <div className="space-y-2 rounded-lg border p-4">
-              <div className="font-medium">2) Telefone</div>
-              <p className="text-sm text-muted-foreground">
-                A verificação de telefone está desativada.
-              </p>
-              <div className="text-sm">Status: Verificado</div>
-            </div>
-          )}
+          ) : null}
 
           {message ? (
             <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
