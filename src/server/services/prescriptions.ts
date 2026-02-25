@@ -2,7 +2,7 @@ import PDFDocument from "pdfkit";
 import { getClinicContext } from "@/server/auth/context";
 import { assertPermission } from "@/server/rbac/guard";
 import { auditLog } from "@/server/audit/auditLog";
-import { SupabaseStorageProvider } from "@/server/storage/supabase";
+import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { createAttachment } from "@/server/repositories/attachments";
 import { getClinicById } from "@/server/repositories/clinics";
 import { listPatientsByIds } from "@/server/repositories/patients";
@@ -13,7 +13,7 @@ import {
   listPrescriptionsByPatient,
 } from "@/server/repositories/prescriptions";
 
-const storage = new SupabaseStorageProvider();
+const STORAGE_BUCKET = "clinic-attachments";
 
 const DOCUMENT_LABELS: Record<ClinicalDocumentType, string> = {
   prescription: "Receita",
@@ -72,9 +72,15 @@ async function storeClinicalDocument(input: {
   pdf: Buffer;
 }) {
   const path = `${input.clinicId}/${input.patientId}/${Date.now()}-${input.fileName}`;
-  const file = new File([new Uint8Array(input.pdf)], input.fileName, { type: "application/pdf" });
-  const upload = await storage.upload(file, path);
-  return upload.path;
+  const admin = supabaseAdmin();
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(path, input.pdf, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (error) {
+    throw new Error(`Falha ao salvar documento no storage: ${error.message}`);
+  }
+  return path;
 }
 
 export async function getPrescriptionsByPatient(patientId: string) {

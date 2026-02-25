@@ -2,7 +2,7 @@ import PDFDocument from "pdfkit";
 import { getClinicContext } from "@/server/auth/context";
 import { assertPermission } from "@/server/rbac/guard";
 import { auditLog } from "@/server/audit/auditLog";
-import { SupabaseStorageProvider } from "@/server/storage/supabase";
+import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { createAttachment } from "@/server/repositories/attachments";
 import { getClinicById } from "@/server/repositories/clinics";
 import { listPatientsByIds } from "@/server/repositories/patients";
@@ -19,7 +19,7 @@ import {
   updateBudgetStatus,
 } from "@/server/repositories/budgets";
 
-const storage = new SupabaseStorageProvider();
+const STORAGE_BUCKET = "clinic-attachments";
 
 type BudgetTotals = {
   subtotal: number;
@@ -151,19 +151,25 @@ async function storeContractAttachment(input: {
 }) {
   const fileName = `contrato-orcamento-${input.budgetId.slice(0, 8)}-${Date.now()}.pdf`;
   const filePath = `${input.clinicId}/${input.patientId}/${Date.now()}-${fileName}`;
-  const file = new File([new Uint8Array(input.pdf)], fileName, { type: "application/pdf" });
-  const upload = await storage.upload(file, filePath);
+  const admin = supabaseAdmin();
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(filePath, input.pdf, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (error) {
+    throw new Error(`Falha ao salvar contrato no storage: ${error.message}`);
+  }
 
   await createAttachment(input.clinicId, {
     patient_id: input.patientId,
-    file_path: upload.path,
+    file_path: filePath,
     file_name: fileName,
     category: "contract",
   });
 
   return {
     file_name: fileName,
-    file_path: upload.path,
+    file_path: filePath,
   };
 }
 
