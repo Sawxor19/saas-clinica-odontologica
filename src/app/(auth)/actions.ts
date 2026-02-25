@@ -8,6 +8,18 @@ import { reconcileProvisioningFromCheckoutSessionId } from "@/server/services/pr
 import { getAppUrl } from "@/server/config/app-url";
 
 type SignupState = { error?: string };
+type SignupIntentLite = {
+  id: string;
+  checkout_session_id: string | null;
+  status: string | null;
+};
+
+function getSignupResumeRoute(intent: SignupIntentLite) {
+  if (intent.status === "CHECKOUT_STARTED" || intent.checkout_session_id) {
+    return `/signup/billing?intentId=${intent.id}`;
+  }
+  return `/signup/verify?intentId=${intent.id}`;
+}
 
 export async function signupAction(_: SignupState, _formData: FormData) {
   void _;
@@ -39,7 +51,7 @@ export async function loginAction(formData: FormData) {
       const admin = supabaseAdmin();
       const { data: intentByUser } = await admin
         .from("signup_intents")
-        .select("id, checkout_session_id")
+        .select("id, checkout_session_id, status")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -50,7 +62,7 @@ export async function loginAction(formData: FormData) {
         (
           await admin
             .from("signup_intents")
-            .select("id, checkout_session_id")
+            .select("id, checkout_session_id, status")
             .eq("email", user.email ?? "")
             .order("created_at", { ascending: false })
             .limit(1)
@@ -73,20 +85,20 @@ export async function loginAction(formData: FormData) {
         if (recoveredProfile?.clinic_id) {
           profile = recoveredProfile;
         } else if (intent.id) {
-          redirect(`/signup/success?session_id=${intent.checkout_session_id}&intentId=${intent.id}`);
+          redirect(getSignupResumeRoute(intent as SignupIntentLite));
         }
       }
 
       if (!profile?.clinic_id) {
         const { data: intentFallback } = await admin
         .from("signup_intents")
-        .select("id")
+        .select("id, checkout_session_id, status")
         .eq("email", user.email ?? "")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
         if (intentFallback?.id) {
-          redirect(`/signup/verify?intentId=${intentFallback.id}`);
+          redirect(getSignupResumeRoute(intentFallback as SignupIntentLite));
         }
         redirect("/signup");
       }

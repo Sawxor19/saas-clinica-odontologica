@@ -79,9 +79,7 @@ async function getSignupIntent(intentId: string) {
   const admin = supabaseAdmin();
   const { data, error } = await admin
     .from("signup_intents")
-    .select(
-      "id, clinic_name, admin_name, email, whatsapp_number, document_type, document_number, phone_e164, phone_verified_at, cpf_hash, address, cep, timezone, plan, user_id, status, clinic_id"
-    )
+    .select("*")
     .eq("id", intentId)
     .maybeSingle();
 
