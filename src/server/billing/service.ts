@@ -10,6 +10,8 @@ import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { syncSubscriptionFromStripe } from "@/server/services/provisioning.service";
 import { getAppUrl } from "@/server/config/app-url";
 
+const SIGNUP_CHECKOUT_VERSION = "v3";
+
 const planPriceMap: Record<PlanKey, string> = {
   trial: process.env.STRIPE_PRICE_TRIAL || "",
   monthly: process.env.STRIPE_PRICE_MONTHLY || "",
@@ -82,6 +84,7 @@ export async function createCheckoutSession(input: {
   const intent = await ensureReadyForCheckout(input.intentId);
   const appUrl = getAppUrl();
   const admin = supabaseAdmin();
+  const shouldApplyTrial = input.plan === "trial";
 
   if (intent.checkout_session_id) {
     try {
@@ -89,7 +92,15 @@ export async function createCheckoutSession(input: {
         intent.checkout_session_id
       );
 
-      if (existing?.url && existing.status === "open") {
+      const existingPlan = existing.metadata?.plan;
+      const existingVersion = existing.metadata?.checkout_version;
+      const canReuseOpenSession =
+        existing?.url &&
+        existing.status === "open" &&
+        existingPlan === input.plan &&
+        existingVersion === SIGNUP_CHECKOUT_VERSION;
+
+      if (canReuseOpenSession) {
         return existing.url;
       }
 
@@ -111,21 +122,28 @@ export async function createCheckoutSession(input: {
       customer_email: intent.email,
       client_reference_id: intent.id,
       line_items: [{ price: priceId, quantity: 1 }],
+      payment_method_collection: "always",
       allow_promotion_codes: true,
-      subscription_data: {
-        metadata: { plan: input.plan },
-      },
+      subscription_data: shouldApplyTrial
+        ? {
+            trial_period_days: 30,
+            metadata: { plan: input.plan },
+          }
+        : {
+            metadata: { plan: input.plan },
+          },
       metadata: {
         intent_id: intent.id,
         plan: input.plan,
         user_id: intent.user_id || "",
         checkout_kind: "signup",
+        checkout_version: SIGNUP_CHECKOUT_VERSION,
       },
       success_url: `${appUrl}/signup/success?session_id={CHECKOUT_SESSION_ID}&intentId=${intent.id}`,
       cancel_url: `${appUrl}/signup/cancelled?intentId=${intent.id}`,
     },
     {
-      idempotencyKey: `signup_checkout_v2:${intent.id}:${input.plan}:${priceId}`,
+      idempotencyKey: `signup_checkout_${SIGNUP_CHECKOUT_VERSION}:${intent.id}:${input.plan}:${priceId}`,
     }
   );
 
