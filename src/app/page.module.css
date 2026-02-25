@@ -11,10 +11,14 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 15% 8%, rgb(20 184 166 / 0.32), transparent 38%),
-    radial-gradient(circle at 88% 2%, rgb(59 130 246 / 0.26), transparent 42%),
-    radial-gradient(circle at 88% 82%, rgb(16 185 129 / 0.18), transparent 32%),
-    linear-gradient(rgb(10 25 43 / 0.9), rgb(3 15 27 / 0.95));
+    linear-gradient(115deg, rgb(2 13 27 / 0.88) 4%, rgb(4 20 38 / 0.76) 45%, rgb(6 29 53 / 0.62) 78%, rgb(8 35 61 / 0.55) 100%),
+    radial-gradient(circle at 80% 42%, rgb(125 211 252 / 0.26), transparent 44%),
+    radial-gradient(circle at 16% 12%, rgb(20 184 166 / 0.22), transparent 38%),
+    url("/landing-page-saas.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .background::before,

@@ -64,6 +64,28 @@
 }
 
 @layer utilities {
+  .saas-scene-light {
+    background-color: #e8eef5;
+    background-image:
+      linear-gradient(145deg, rgb(248 250 252 / 0.88), rgb(226 232 240 / 0.76)),
+      url("/landing-page-saas.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  .saas-scene-dark {
+    background-color: #031426;
+    background-image:
+      linear-gradient(125deg, rgb(2 16 33 / 0.78), rgb(6 30 53 / 0.72)),
+      url("/landing-page-saas.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
   .glass-panel {
     background: linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--card) / 0.85));
     border: 1px solid hsl(var(--border));

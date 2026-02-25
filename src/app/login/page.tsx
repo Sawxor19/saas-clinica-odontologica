@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
+    <div className="saas-scene-dark flex min-h-screen items-center justify-center px-4">
+      <Card className="w-full max-w-md border-slate-200/70 bg-white/92 shadow-2xl backdrop-blur">
         <CardHeader>
           <CardTitle>Entrar</CardTitle>
         </CardHeader>

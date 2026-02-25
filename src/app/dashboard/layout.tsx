@@ -9,11 +9,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
+    <div className="saas-scene-light flex min-h-screen">
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 bg-background">{children}</main>
+        <main className="flex-1 bg-white/40 backdrop-blur-[1px]">{children}</main>
         <Suspense fallback={null}>
           <DashboardOnboarding />
         </Suspense>
