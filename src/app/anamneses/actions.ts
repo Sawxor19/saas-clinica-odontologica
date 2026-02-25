@@ -24,3 +24,11 @@ export async function setAnamnesisStatusAction(formData: FormData) {
   revalidatePath("/anamneses");
   revalidatePath(`/anamneses/${formId}`);
 }
+
+export async function deleteAnamnesisAction(formData: FormData) {
+  const formId = String(formData.get("form_id") || "");
+  if (!formId) return;
+  await anamnesisService.deleteForm(formId);
+  revalidatePath("/anamneses");
+  revalidatePath(`/anamneses/${formId}`);
+}

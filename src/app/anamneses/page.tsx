@@ -2,9 +2,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmForm } from "@/components/ui/confirm-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { anamnesisService } from "@/server/services/anamneses";
-import { setAnamnesisStatusAction } from "@/app/anamneses/actions";
+import { deleteAnamnesisAction, setAnamnesisStatusAction } from "@/app/anamneses/actions";
 import { CopyPublicLinkButton } from "@/app/anamneses/CopyPublicLinkButton";
 
 function formatStatus(status: string) {
@@ -87,6 +88,15 @@ export default async function AnamnesesPage() {
                         {archived ? "Reativar" : "Arquivar"}
                       </Button>
                     </form>
+                    <ConfirmForm
+                      action={deleteAnamnesisAction}
+                      message="Remover esta anamnese? As respostas vinculadas serao excluidas."
+                    >
+                      <input type="hidden" name="form_id" value={form.id} />
+                      <Button type="submit" size="sm" variant="outline" className="text-destructive">
+                        Remover
+                      </Button>
+                    </ConfirmForm>
                   </div>
                 </CardHeader>
                 {form.description ? (
