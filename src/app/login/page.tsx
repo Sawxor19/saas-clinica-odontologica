@@ -9,8 +9,14 @@ export default function LoginPage() {
     <div className="saas-scene-dark flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md border-slate-200/70 bg-white/92 shadow-2xl backdrop-blur">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-50 shadow-lg">
-            <Image src="/logo.png" alt="E-Clinic" width={40} height={40} className="h-10 w-10 object-contain" />
+          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center">
+            <Image
+              src="/logo-off.png"
+              alt="E-Clinic"
+              width={48}
+              height={48}
+              className="h-12 w-12 object-contain drop-shadow-[0_0_14px_rgba(8,47,73,0.28)]"
+            />
           </div>
           <CardTitle>Entrar</CardTitle>
           <p className="text-sm text-muted-foreground">Acesse seu painel da clinica</p>

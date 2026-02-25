@@ -28,33 +28,44 @@ export function DashboardEntrySplash() {
     () => Math.max(0, Math.ceil((SPLASH_DURATION_MS - elapsed) / 1000)),
     [elapsed]
   );
+  const isClosing = elapsed >= SPLASH_DURATION_MS - 450;
 
   if (!visible) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 backdrop-blur-md">
-      <div className="w-full max-w-sm rounded-3xl border border-cyan-400/30 bg-slate-900/70 p-8 shadow-[0_30px_80px_rgba(2,132,199,0.35)]">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-cyan-300/50 bg-cyan-50 shadow-[0_0_60px_rgba(34,211,238,0.45)]">
-          <Image src="/logo.png" alt="E-Clinic" width={58} height={58} className="h-14 w-14 object-contain" />
+    <div
+      className={`fixed inset-0 z-[120] flex items-center justify-center transition-opacity duration-500 ${
+        isClosing ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(2,18,36,0.8),rgba(5,30,54,0.66))] backdrop-blur-sm" />
+
+      <div className="relative z-10 w-full max-w-sm px-8 text-center">
+        <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+          <span className="absolute inset-0 rounded-full border border-cyan-300/45 animate-pulse" />
+          <span className="absolute -inset-3 rounded-full border border-cyan-200/25 animate-[spin_8s_linear_infinite]" />
+          <Image
+            src="/logo-off.png"
+            alt="E-Clinic"
+            width={76}
+            height={76}
+            className="h-[4.2rem] w-[4.2rem] object-contain drop-shadow-[0_0_26px_rgba(125,211,252,0.58)]"
+          />
         </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm uppercase tracking-[0.22em] text-cyan-200">Carregando ambiente</p>
-          <p className="mt-2 text-lg font-semibold text-white">Preparando seu dashboard</p>
-        </div>
+        <p className="mt-7 text-xs uppercase tracking-[0.24em] text-cyan-200">Entrando no sistema</p>
+        <p className="mt-2 text-lg font-semibold text-white">Preparando seu ambiente clinico</p>
 
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-700/80">
+        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-cyan-900/50">
           <div
-            className="h-2 rounded-full bg-gradient-to-r from-cyan-300 via-cyan-400 to-teal-300 transition-[width] duration-75"
+            className="h-1.5 rounded-full bg-gradient-to-r from-cyan-300 via-cyan-400 to-teal-300 transition-[width] duration-75"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <p className="mt-3 text-center text-xs text-slate-300">
-          Iniciando modulos clinicos... {secondsLeft}s
-        </p>
+        <p className="mt-3 text-xs text-slate-200/90">Carregando modulos... {secondsLeft}s</p>
       </div>
     </div>
   );

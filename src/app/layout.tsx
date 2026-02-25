@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   },
   description: "Sistema de gestao para clinicas odontologicas",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/logo-off.png",
+    shortcut: "/logo-off.png",
+    apple: "/logo-off.png",
   },
 };
 
