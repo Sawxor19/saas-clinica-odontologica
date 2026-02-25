@@ -94,11 +94,13 @@ export async function createCheckoutSession(input: {
 
       const existingPlan = existing.metadata?.plan;
       const existingVersion = existing.metadata?.checkout_version;
+      const existingPriceId = existing.metadata?.price_id;
       const canReuseOpenSession =
         existing?.url &&
         existing.status === "open" &&
         existingPlan === input.plan &&
-        existingVersion === SIGNUP_CHECKOUT_VERSION;
+        existingVersion === SIGNUP_CHECKOUT_VERSION &&
+        existingPriceId === priceId;
 
       if (canReuseOpenSession) {
         return existing.url;
@@ -135,6 +137,7 @@ export async function createCheckoutSession(input: {
       metadata: {
         intent_id: intent.id,
         plan: input.plan,
+        price_id: priceId,
         user_id: intent.user_id || "",
         checkout_kind: "signup",
         checkout_version: SIGNUP_CHECKOUT_VERSION,
