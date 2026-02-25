@@ -8,6 +8,7 @@ import {
   approveBudgetAndIssueContractAction,
   createBudgetAction,
   deleteBudgetAction,
+  deleteBudgetItemAction,
   issueBudgetContractAction,
   updateBudgetStatusAction,
 } from "@/app/dashboard/budgets/actions";
@@ -117,14 +118,35 @@ export default async function BudgetsPage() {
                 </div>
 
                 <div className="grid gap-2 rounded-xl border border-border/70 bg-card/95 p-3 text-xs">
-                  {budget.items.map((item) => (
-                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-                      <span>{item.procedure_name}</span>
-                      <span className="text-muted-foreground">
-                        {item.quantity} x R$ {formatCurrency(item.unit_price)}
-                      </span>
-                    </div>
-                  ))}
+                  {budget.items.length === 0 ? (
+                    <div className="text-muted-foreground">Sem itens no orcamento.</div>
+                  ) : (
+                    budget.items.map((item) => (
+                      <div key={item.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span>{item.procedure_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">
+                            {item.quantity} x R$ {formatCurrency(item.unit_price)}
+                          </span>
+                          <ConfirmForm
+                            action={deleteBudgetItemAction}
+                            message="Remover este item do orcamento?"
+                          >
+                            <input type="hidden" name="budget_id" value={budget.id} />
+                            <input type="hidden" name="item_id" value={item.id} />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[11px] text-destructive"
+                            >
+                              Remover item
+                            </Button>
+                          </ConfirmForm>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {budget.notes ? (

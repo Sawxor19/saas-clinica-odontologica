@@ -235,6 +235,27 @@ export async function deleteBudget(clinicId: string, budgetId: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function deleteBudgetItem(clinicId: string, budgetId: string, itemId: string) {
+  const supabase = await supabaseServerClient();
+  const { data: budget, error: budgetError } = await supabase
+    .from("budgets")
+    .select("id")
+    .eq("clinic_id", clinicId)
+    .eq("id", budgetId)
+    .maybeSingle();
+
+  if (budgetError) throw new Error(budgetError.message);
+  if (!budget) throw new Error("Orcamento nao encontrado.");
+
+  const { error } = await supabase
+    .from("budget_items")
+    .delete()
+    .eq("budget_id", budgetId)
+    .eq("id", itemId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function replaceBudgetItems(
   clinicId: string,
   budgetId: string,

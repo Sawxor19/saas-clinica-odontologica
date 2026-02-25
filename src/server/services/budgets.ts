@@ -12,6 +12,7 @@ import {
   BudgetStatus,
   createBudget,
   deleteBudget,
+  deleteBudgetItem,
   getBudgetById,
   listBudgets,
   replaceBudgetItems,
@@ -256,6 +257,20 @@ export async function removeBudget(budgetId: string) {
     action: "budgets.delete",
     entity: "budget",
     entityId: budgetId,
+  });
+}
+
+export async function removeBudgetItem(budgetId: string, itemId: string) {
+  const { clinicId, permissions, userId } = await getClinicContext();
+  assertPermission(permissions, "writeBudgets");
+  await deleteBudgetItem(clinicId, budgetId, itemId);
+  await auditLog({
+    clinicId,
+    userId,
+    action: "budgets.item.delete",
+    entity: "budget_item",
+    entityId: itemId,
+    metadata: { budgetId },
   });
 }
 

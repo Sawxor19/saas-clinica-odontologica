@@ -6,6 +6,7 @@ import {
   approveBudgetAndIssueContract,
   issueBudgetContract,
   removeBudget,
+  removeBudgetItem,
   setBudgetStatus,
 } from "@/server/services/budgets";
 
@@ -92,5 +93,14 @@ export async function deleteBudgetAction(formData: FormData) {
   if (!budgetId) return;
 
   await removeBudget(budgetId);
+  revalidatePath("/dashboard/budgets");
+}
+
+export async function deleteBudgetItemAction(formData: FormData) {
+  const budgetId = String(formData.get("budget_id") || "");
+  const itemId = String(formData.get("item_id") || "");
+  if (!budgetId || !itemId) return;
+
+  await removeBudgetItem(budgetId, itemId);
   revalidatePath("/dashboard/budgets");
 }
