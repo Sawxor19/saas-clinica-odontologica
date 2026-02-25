@@ -8,6 +8,7 @@ import { getPayables } from "@/server/services/payables";
 import { PayablesTable } from "@/app/dashboard/finance/PayablesTable";
 import { PayablesForm } from "@/app/dashboard/finance/PayablesForm";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { redirect } from "next/navigation";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -25,9 +26,44 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString("pt-BR");
 }
 
+function isForbiddenError(error: unknown) {
+  return error instanceof Error && error.message === "Forbidden";
+}
+
 export default async function FinancePage() {
-  const summary = await getFinanceSummary();
-  const payables = await getPayables();
+  type FinanceSummary = Awaited<ReturnType<typeof getFinanceSummary>>;
+  type PayablesList = Awaited<ReturnType<typeof getPayables>>;
+
+  const [summaryResult, payablesResult] = await Promise.allSettled([
+    getFinanceSummary(),
+    getPayables(),
+  ]);
+
+  if (summaryResult.status === "rejected" && isForbiddenError(summaryResult.reason)) {
+    redirect("/403");
+  }
+  if (payablesResult.status === "rejected" && isForbiddenError(payablesResult.reason)) {
+    redirect("/403");
+  }
+
+  const summaryFallback: FinanceSummary = {
+    todayTotal: 0,
+    monthReceivableTotal: 0,
+    overdueTotal: 0,
+    overdueCount: 0,
+    monthTotal: 0,
+    payments: [],
+    receivables: [],
+  };
+  const payablesFallback: PayablesList = [];
+
+  const summary =
+    summaryResult.status === "fulfilled" ? summaryResult.value : summaryFallback;
+  const payables =
+    payablesResult.status === "fulfilled" ? payablesResult.value : payablesFallback;
+  const hasDataLoadError =
+    summaryResult.status === "rejected" || payablesResult.status === "rejected";
+
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -92,6 +128,15 @@ export default async function FinancePage() {
           </div>
         }
       />
+
+      {hasDataLoadError ? (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardContent className="p-4 text-sm text-amber-800">
+            Alguns dados financeiros nao puderam ser carregados. Verifique as migrations do banco
+            e tente novamente.
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard
