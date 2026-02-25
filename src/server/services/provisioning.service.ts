@@ -75,6 +75,14 @@ function getSessionProvisionStatus(session: Stripe.Checkout.Session) {
   return "incomplete";
 }
 
+function isMissingOnConflictConstraintError(message?: string | null) {
+  return (
+    message?.toLowerCase().includes(
+      "there is no unique or exclusion constraint matching the on conflict specification"
+    ) ?? false
+  );
+}
+
 async function getSignupIntent(intentId: string) {
   const admin = supabaseAdmin();
   const { data, error } = await admin
@@ -129,22 +137,51 @@ async function upsertSubscriptionRecord(input: {
 }) {
   const admin = supabaseAdmin();
   const now = new Date().toISOString();
+  const subscriptionPayload = {
+    clinic_id: input.clinicId,
+    stripe_customer_id: input.stripeCustomerId,
+    stripe_subscription_id: input.stripeSubscriptionId,
+    plan: input.plan,
+    status: input.status,
+    current_period_end: input.currentPeriodEnd,
+    updated_at: now,
+  };
 
-  const { error: subscriptionError } = await admin.from("subscriptions").upsert(
-    {
-      clinic_id: input.clinicId,
-      stripe_customer_id: input.stripeCustomerId,
-      stripe_subscription_id: input.stripeSubscriptionId,
-      plan: input.plan,
-      status: input.status,
-      current_period_end: input.currentPeriodEnd,
-      updated_at: now,
-    },
-    { onConflict: "clinic_id" }
-  );
+  const { error: subscriptionError } = await admin
+    .from("subscriptions")
+    .upsert(subscriptionPayload, { onConflict: "clinic_id" });
 
   if (subscriptionError) {
-    throw new Error(subscriptionError.message);
+    if (!isMissingOnConflictConstraintError(subscriptionError.message)) {
+      throw new Error(subscriptionError.message);
+    }
+
+    const { data: existingSubscription, error: existingSubscriptionError } = await admin
+      .from("subscriptions")
+      .select("id")
+      .eq("clinic_id", input.clinicId)
+      .maybeSingle();
+
+    if (existingSubscriptionError) {
+      throw new Error(existingSubscriptionError.message);
+    }
+
+    if (existingSubscription?.id) {
+      const { error: updateSubscriptionError } = await admin
+        .from("subscriptions")
+        .update(subscriptionPayload)
+        .eq("id", existingSubscription.id);
+      if (updateSubscriptionError) {
+        throw new Error(updateSubscriptionError.message);
+      }
+    } else {
+      const { error: insertSubscriptionError } = await admin
+        .from("subscriptions")
+        .insert(subscriptionPayload);
+      if (insertSubscriptionError) {
+        throw new Error(insertSubscriptionError.message);
+      }
+    }
   }
 
   const { error: clinicError } = await admin
@@ -308,27 +345,43 @@ async function provisionCheckoutSession(input: {
 
     if (!clinicId) {
       const plan = normalizePlan(session.metadata?.plan ?? intent?.plan, "monthly");
+      const clinicPayload = {
+        owner_user_id: userId,
+        name: intent?.clinic_name || "Clinica",
+        whatsapp_number: intent?.whatsapp_number ?? intent?.phone_e164 ?? null,
+        timezone: intent?.timezone ?? "America/Sao_Paulo",
+        subscription_status: "inactive",
+        current_period_end: fallbackPeriodEnd(plan),
+      };
       const { data: clinic, error: clinicError } = await admin
         .from("clinics")
-        .upsert(
-          {
-            owner_user_id: userId,
-            name: intent?.clinic_name || "Clinica",
-            whatsapp_number: intent?.whatsapp_number ?? intent?.phone_e164 ?? null,
-            timezone: intent?.timezone ?? "America/Sao_Paulo",
-            subscription_status: "inactive",
-            current_period_end: fallbackPeriodEnd(plan),
-          },
-          { onConflict: "owner_user_id" }
-        )
+        .insert(clinicPayload)
         .select("id")
         .single();
 
-      if (clinicError || !clinic) {
-        throw new Error(clinicError?.message || "Failed to create clinic");
+      if (clinicError) {
+        const { data: ownerClinicRetry, error: ownerClinicRetryError } = await admin
+          .from("clinics")
+          .select("id")
+          .eq("owner_user_id", userId)
+          .maybeSingle();
+
+        if (ownerClinicRetryError) {
+          throw new Error(ownerClinicRetryError.message);
+        }
+
+        if (ownerClinicRetry?.id) {
+          clinicId = ownerClinicRetry.id as string;
+        } else {
+          throw new Error(clinicError.message || "Failed to create clinic");
+        }
+      } else if (!clinic) {
+        throw new Error("Failed to create clinic");
       }
 
-      clinicId = clinic.id as string;
+      if (!clinicId && clinic?.id) {
+        clinicId = clinic.id as string;
+      }
     } else {
       const { error: ownerUpdateError } = await admin
         .from("clinics")
@@ -381,24 +434,34 @@ async function provisionCheckoutSession(input: {
     const profileDocument = profile?.cpf || intent?.document_number || null;
     const profileAddress = profile?.address || intent?.address || null;
     const profileCep = profile?.cep || intent?.cep || null;
+    const profilePayload = {
+      user_id: userId,
+      clinic_id: clinicId,
+      full_name: fullName,
+      role,
+      phone: profilePhone,
+      cpf: profileDocument,
+      address: profileAddress,
+      cep: profileCep,
+      stripe_customer_id: stripeCustomerId,
+      cpf_hash: intent?.cpf_hash ?? null,
+      phone_e164: intent?.phone_e164 ?? null,
+      phone_verified_at: intent?.phone_verified_at ?? null,
+    };
 
-    const { error: profileWriteError } = await admin.from("profiles").upsert(
-      {
-        user_id: userId,
-        clinic_id: clinicId,
-        full_name: fullName,
-        role,
-        phone: profilePhone,
-        cpf: profileDocument,
-        address: profileAddress,
-        cep: profileCep,
-        stripe_customer_id: stripeCustomerId,
-        cpf_hash: intent?.cpf_hash ?? null,
-        phone_e164: intent?.phone_e164 ?? null,
-        phone_verified_at: intent?.phone_verified_at ?? null,
-      },
-      { onConflict: "user_id" }
-    );
+    const { data: existingProfile, error: existingProfileError } = await admin
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingProfileError) {
+      throw new Error(existingProfileError.message);
+    }
+
+    const { error: profileWriteError } = existingProfile?.user_id
+      ? await admin.from("profiles").update(profilePayload).eq("user_id", userId)
+      : await admin.from("profiles").insert(profilePayload);
 
     if (profileWriteError) {
       throw new Error(profileWriteError.message);
@@ -413,17 +476,35 @@ async function provisionCheckoutSession(input: {
       payload,
     });
 
-    const { error: membershipError } = await admin.from("memberships").upsert(
-      {
-        clinic_id: clinicId,
-        user_id: userId,
-        role,
-      },
-      { onConflict: "clinic_id,user_id" }
-    );
+    const { data: existingMembership, error: existingMembershipError } = await admin
+      .from("memberships")
+      .select("user_id")
+      .eq("clinic_id", clinicId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingMembershipError) {
+      throw new Error(existingMembershipError.message);
+    }
+
+    const { error: membershipError } = existingMembership?.user_id
+      ? await admin
+          .from("memberships")
+          .update({ role })
+          .eq("clinic_id", clinicId)
+          .eq("user_id", userId)
+      : await admin.from("memberships").insert({
+          clinic_id: clinicId,
+          user_id: userId,
+          role,
+        });
 
     if (membershipError) {
       throw new Error(membershipError.message);
+    }
+
+    if (!clinicId) {
+      throw new Error("Provisioning aborted: missing clinic_id");
     }
 
     await setProvisioningJobStep(job.job_id, "membership_ok", {
