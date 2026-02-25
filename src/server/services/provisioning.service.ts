@@ -923,7 +923,7 @@ export async function getProvisioningStatus(input: {
     job?.status === "done" ||
     Boolean(subscription && ACTIVE_ACCESS_STATUSES.has(subscription.status));
 
-  if (input.checkoutSessionId && !ready && job?.status !== "failed") {
+  if (input.checkoutSessionId && !ready) {
     try {
       await reconcileProvisioningFromCheckoutSessionId(input.checkoutSessionId);
       job = await findProvisioningJobBySessionOrIntent({
