@@ -154,6 +154,14 @@ export default async function BudgetsPage() {
                 ) : null}
 
                 <div className="flex flex-wrap gap-2">
+                  {budget.contract_url ? (
+                    <a href={budget.contract_url} target="_blank" rel="noreferrer">
+                      <Button type="button" size="sm" variant="outline">
+                        Abrir contrato
+                      </Button>
+                    </a>
+                  ) : null}
+
                   {budget.status !== "approved" ? (
                     <form action={approveBudgetAndIssueContractAction}>
                       <input type="hidden" name="budget_id" value={budget.id} />

@@ -27,6 +27,12 @@ type BudgetTotals = {
   total: number;
 };
 
+type ContractAttachment = {
+  file_path: string;
+  file_name: string;
+  created_at: string;
+};
+
 function safeStatus(value: string): BudgetStatus {
   if (value === "approved" || value === "rejected" || value === "draft") return value;
   return "draft";
@@ -79,6 +85,90 @@ function withTotals<T extends { items: Array<{ quantity: number; unit_price: num
     ...budget,
     ...calculateTotals(budget.items, budget.discount),
   };
+}
+
+function buildBudgetContractPrefix(budgetId: string) {
+  return `contrato-orcamento-${budgetId.slice(0, 8)}-`;
+}
+
+async function listLatestContractsByBudget(
+  clinicId: string,
+  budgets: Array<{ id: string; patient_id: string }>
+) {
+  if (budgets.length === 0) {
+    return new Map<string, ContractAttachment>();
+  }
+
+  const patientIds = Array.from(new Set(budgets.map((item) => item.patient_id)));
+  const budgetMatchersByPatient = new Map<string, Array<{ budgetId: string; prefix: string }>>();
+  budgets.forEach((budget) => {
+    const current = budgetMatchersByPatient.get(budget.patient_id) ?? [];
+    current.push({
+      budgetId: budget.id,
+      prefix: buildBudgetContractPrefix(budget.id),
+    });
+    budgetMatchersByPatient.set(budget.patient_id, current);
+  });
+
+  const admin = supabaseAdmin();
+  const { data, error } = await admin
+    .from("attachments")
+    .select("patient_id, file_path, file_name, created_at")
+    .eq("clinic_id", clinicId)
+    .eq("category", "contract")
+    .in("patient_id", patientIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Falha ao buscar contratos emitidos: ${error.message}`);
+  }
+
+  const latestByBudget = new Map<string, ContractAttachment>();
+  (data ?? []).forEach((row) => {
+    const patientId = String(row.patient_id ?? "");
+    const filePath = String(row.file_path ?? "");
+    const fileName = String(row.file_name ?? "");
+    const createdAt = String(row.created_at ?? "");
+    if (!patientId || !filePath || !fileName || !createdAt) {
+      return;
+    }
+
+    const matchers = budgetMatchersByPatient.get(patientId);
+    if (!matchers || matchers.length === 0) {
+      return;
+    }
+
+    matchers.forEach((matcher) => {
+      if (latestByBudget.has(matcher.budgetId)) {
+        return;
+      }
+      if (!fileName.startsWith(matcher.prefix)) {
+        return;
+      }
+      latestByBudget.set(matcher.budgetId, {
+        file_path: filePath,
+        file_name: fileName,
+        created_at: createdAt,
+      });
+    });
+  });
+
+  return latestByBudget;
+}
+
+async function buildContractUrlsByPath(paths: string[]) {
+  if (paths.length === 0) return new Map<string, string | null>();
+
+  const admin = supabaseAdmin();
+  const entries = await Promise.all(
+    paths.map(async (path) => {
+      const { data, error } = await admin.storage.from(STORAGE_BUCKET).createSignedUrl(path, 60 * 15);
+      if (error) return [path, null] as const;
+      return [path, data?.signedUrl ?? null] as const;
+    })
+  );
+
+  return new Map(entries);
 }
 
 async function buildBudgetContractPdf(input: {
@@ -178,6 +268,13 @@ export async function getBudgets() {
   assertPermission(permissions, "writeBudgets");
 
   const budgets = await listBudgets(clinicId);
+  const contractsByBudget = await listLatestContractsByBudget(clinicId, budgets);
+  const contractPaths = Array.from(
+    new Set(
+      Array.from(contractsByBudget.values()).map((item) => item.file_path)
+    )
+  );
+  const contractUrlsByPath = await buildContractUrlsByPath(contractPaths);
   await auditLog({
     clinicId,
     userId,
@@ -185,7 +282,16 @@ export async function getBudgets() {
     entity: "budget",
   });
 
-  return budgets.map((budget) => withTotals(budget));
+  return budgets.map((budget) => {
+    const contract = contractsByBudget.get(budget.id);
+    return {
+      ...withTotals(budget),
+      contract_file_path: contract?.file_path ?? null,
+      contract_file_name: contract?.file_name ?? null,
+      contract_created_at: contract?.created_at ?? null,
+      contract_url: contract ? (contractUrlsByPath.get(contract.file_path) ?? null) : null,
+    };
+  });
 }
 
 export async function addBudget(input: {
