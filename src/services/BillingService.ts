@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { stripe } from "@/server/billing/stripe";
 import { BillingRepository } from "@/repositories/BillingRepository";
+import { logger } from "@/lib/logger";
 
 type CreateCheckoutInput = {
   userId: string;
@@ -132,6 +133,31 @@ export class BillingService {
     if (subscription.trial_end) {
       await this.repository.markTrialUsed(userId);
     }
+  }
+
+  async handleInvoicePaid(invoice: Stripe.Invoice) {
+    const customerId = asString(invoice.customer);
+    if (!customerId) return;
+
+    const clinicId = await this.repository.findClinicIdByStripeCustomerId(customerId);
+    if (!clinicId) {
+      logger.warn("invoice.paid sem mapeamento de clinica", {
+        invoiceId: invoice.id,
+        customerId,
+      });
+      return;
+    }
+
+    const paidAt = invoice.status_transitions?.paid_at
+      ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+      : new Date().toISOString();
+
+    await this.repository.upsertPaymentHistory({
+      clinicId,
+      amount: Number(invoice.amount_paid ?? 0) / 100,
+      stripeInvoiceId: invoice.id,
+      paidAt,
+    });
   }
 
   async hasProcessedEvent(eventId: string) {

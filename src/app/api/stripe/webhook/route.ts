@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       }
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
+        await service.handleInvoicePaid(invoice);
         await emailService.sendInvoiceReceipt(invoice);
         break;
       }
