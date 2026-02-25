@@ -19,6 +19,7 @@ export function DeleteAccountCard({
   canDeleteOwnAccount,
   membershipCount,
 }: DeleteAccountCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +57,17 @@ export function DeleteAccountCard({
 
   const timerReady = secondsLeft === 0;
   const canSubmit = !blockerMessage && formReady && timerReady && !loading;
+
+  function closeModal() {
+    if (loading) return;
+    setIsOpen(false);
+    setError(null);
+    setConfirmEmail("");
+    setConfirmText("");
+    setPassword("");
+    setAcknowledged(false);
+    setSecondsLeft(null);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,75 +110,116 @@ export function DeleteAccountCard({
   }
 
   return (
-    <form className="space-y-3" onSubmit={handleSubmit}>
-      <p className="text-sm text-muted-foreground">
-        Esta acao exclui sua conta e todos os dados da clinica de forma irreversivel.
-      </p>
-      <p className="text-sm text-muted-foreground">
-        Digite exatamente: <span className="font-semibold">{REQUIRED_CONFIRM_TEXT}</span>
-      </p>
-      <Input
-        type="email"
-        placeholder="Confirme seu e-mail"
-        value={confirmEmail}
-        onChange={(event) => setConfirmEmail(event.target.value)}
-        disabled={Boolean(blockerMessage) || loading}
-        required
-      />
-      <Input
-        placeholder="Digite a frase de confirmacao"
-        value={confirmText}
-        onChange={(event) => setConfirmText(event.target.value)}
-        disabled={Boolean(blockerMessage) || loading}
-        required
-      />
-      <Input
-        type="password"
-        placeholder="Digite sua senha atual"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        disabled={Boolean(blockerMessage) || loading}
-        required
-        minLength={8}
-      />
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={acknowledged}
-          onChange={(event) => setAcknowledged(event.target.checked)}
-          disabled={Boolean(blockerMessage) || loading}
-        />
-        Entendo que nao sera possivel recuperar os dados depois da exclusao.
-      </label>
+    <>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Exclui permanentemente conta, clinica e dados vinculados.
+        </p>
 
-      {!timerReady ? (
+        {blockerMessage ? (
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {blockerMessage}
+          </div>
+        ) : null}
+
         <Button
           type="button"
-          variant="outline"
-          disabled={!formReady || Boolean(blockerMessage) || loading}
-          onClick={() => setSecondsLeft(SAFETY_DELAY_SECONDS)}
+          variant="destructive"
+          onClick={() => setIsOpen(true)}
+          disabled={Boolean(blockerMessage)}
         >
-          {secondsLeft && secondsLeft > 0
-            ? `Aguarde ${secondsLeft}s para liberar exclusao`
-            : "Iniciar temporizador de seguranca"}
+          Excluir conta
         </Button>
-      ) : null}
+      </div>
 
-      {blockerMessage ? (
-        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {blockerMessage}
+      {isOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-lg space-y-4 rounded-2xl border bg-background p-5 shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Confirmar exclusao de conta</h3>
+                <p className="text-sm text-muted-foreground">
+                  Esta acao nao pode ser desfeita.
+                </p>
+              </div>
+              <Button type="button" variant="ghost" onClick={closeModal} disabled={loading}>
+                Fechar
+              </Button>
+            </div>
+
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              <p className="text-sm text-muted-foreground">
+                Digite exatamente: <span className="font-semibold">{REQUIRED_CONFIRM_TEXT}</span>
+              </p>
+              <Input
+                type="email"
+                placeholder="Confirme seu e-mail"
+                value={confirmEmail}
+                onChange={(event) => setConfirmEmail(event.target.value)}
+                disabled={loading}
+                required
+              />
+              <Input
+                placeholder="Digite a frase de confirmacao"
+                value={confirmText}
+                onChange={(event) => setConfirmText(event.target.value)}
+                disabled={loading}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Digite sua senha atual"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={loading}
+                required
+                minLength={8}
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                  disabled={loading}
+                />
+                Entendo que nao sera possivel recuperar os dados depois da exclusao.
+              </label>
+
+              {!timerReady ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!formReady || loading}
+                  onClick={() => setSecondsLeft(SAFETY_DELAY_SECONDS)}
+                >
+                  {secondsLeft && secondsLeft > 0
+                    ? `Aguarde ${secondsLeft}s para liberar exclusao`
+                    : "Iniciar temporizador de seguranca"}
+                </Button>
+              ) : null}
+
+              {error ? (
+                <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={closeModal} disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="destructive" disabled={!canSubmit}>
+                  {loading ? "Excluindo conta..." : "Excluir conta permanentemente"}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
-
-      {error ? (
-        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
-
-      <Button type="submit" variant="destructive" disabled={!canSubmit}>
-        {loading ? "Excluindo conta..." : "Excluir conta permanentemente"}
-      </Button>
-    </form>
+    </>
   );
 }
