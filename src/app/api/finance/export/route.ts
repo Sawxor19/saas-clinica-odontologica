@@ -3,7 +3,7 @@ import { getClinicContext } from "@/server/auth/context";
 import { assertPermission } from "@/server/rbac/guard";
 import { getFinanceSummary } from "@/server/services/finance";
 import { getPayables } from "@/server/services/payables";
-import PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
 
 export const runtime = "nodejs";
 
