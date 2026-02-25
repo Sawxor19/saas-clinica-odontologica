@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getClinicContext } from "@/server/auth/context";
 import { SidebarNav } from "@/components/layout/SidebarNav";
@@ -45,8 +46,8 @@ export async function Sidebar({ className }: { className?: string }) {
     >
       <div className="px-4 pb-6 lg:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted text-sm font-semibold text-primary">
-            EC
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/45 bg-cyan-50 shadow-[0_8px_20px_rgba(14,116,144,0.18)]">
+            <Image src="/logo.png" alt="E-Clinic" width={30} height={30} className="h-7 w-7 object-contain" />
           </div>
           <div className="hidden lg:block">
             <div className="text-base font-semibold">E-Clinic</div>

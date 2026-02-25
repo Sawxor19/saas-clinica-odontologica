@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -7,7 +8,6 @@ import {
   ChartNoAxesCombined,
   ClipboardList,
   Clock3,
-  Cross,
   Database,
   ShieldCheck,
   Sparkles,
@@ -143,8 +143,8 @@ export default function Home() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-6 pb-6 pt-8 md:px-8 lg:px-10">
         <div className="flex items-center gap-3">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-400/10 text-cyan-200">
-            <Cross className="h-5 w-5" />
+          <div className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/40 bg-cyan-400/10 text-cyan-200 shadow-[0_0_22px_rgba(34,211,238,0.35)]">
+            <Image src="/logo.png" alt="E-Clinic" width={28} height={28} className="h-7 w-7 object-contain" />
           </div>
           <div>
             <p className="text-sm font-semibold tracking-[0.25em] text-cyan-200/90">

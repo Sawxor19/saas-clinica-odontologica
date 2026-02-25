@@ -13,8 +13,16 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Clinic SaaS",
-  description: "Sistema de gestão para clínicas odontológicas",
+  title: {
+    default: "E-Clinic",
+    template: "%s | E-Clinic",
+  },
+  description: "Sistema de gestao para clinicas odontologicas",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -24,9 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body
-        className={`${manrope.variable} ${sora.variable} antialiased`}
-      >
+      <body className={`${manrope.variable} ${sora.variable} antialiased`}>
         {children}
       </body>
     </html>

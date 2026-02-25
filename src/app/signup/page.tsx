@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,10 +108,14 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
+    <div className="saas-scene-dark flex min-h-screen items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-2xl border-slate-200/70 bg-white/92 shadow-2xl backdrop-blur">
+        <CardHeader className="space-y-3 text-center">
+          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-50 shadow-lg">
+            <Image src="/logo.png" alt="E-Clinic" width={40} height={40} className="h-10 w-10 object-contain" />
+          </div>
           <CardTitle>Crie sua conta</CardTitle>
+          <p className="text-sm text-muted-foreground">Configure seu acesso e inicie o trial</p>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
