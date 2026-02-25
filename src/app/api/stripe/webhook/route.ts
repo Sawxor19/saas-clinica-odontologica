@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { stripe } from "@/server/billing/stripe";
 import { logger } from "@/lib/logger";
 import { BillingService } from "@/services/BillingService";
+import { BillingEmailService } from "@/services/BillingEmailService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
   }
 
   const service = new BillingService();
+  const emailService = new BillingEmailService();
 
   try {
     const alreadyProcessed = await service.hasProcessedEvent(event.id);
@@ -43,6 +45,12 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         await service.handleCheckoutSessionCompleted(session);
+        await emailService.sendCheckoutConfirmation(session);
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await emailService.sendInvoiceReceipt(invoice);
         break;
       }
       case "customer.subscription.updated":
