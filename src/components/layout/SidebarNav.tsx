@@ -11,6 +11,7 @@ import {
   Boxes,
   Stethoscope,
   BarChart3,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const ICONS = {
   dashboard: LayoutDashboard,
   patients: Users,
+  anamneses: ClipboardList,
   schedule: CalendarDays,
   reports: BarChart3,
   procedures: Stethoscope,

@@ -6,6 +6,7 @@ import { SidebarNav } from "@/components/layout/SidebarNav";
 type IconKey =
   | "dashboard"
   | "patients"
+  | "anamneses"
   | "schedule"
   | "reports"
   | "procedures"
@@ -17,6 +18,7 @@ type IconKey =
 const navItems: Array<{ href: string; label: string; iconKey: IconKey }> = [
   { href: "/dashboard", label: "Dashboard", iconKey: "dashboard" },
   { href: "/dashboard/patients", label: "Pacientes", iconKey: "patients" },
+  { href: "/anamneses", label: "Anamnese", iconKey: "anamneses" },
   { href: "/dashboard/schedule", label: "Agenda", iconKey: "schedule" },
   { href: "/dashboard/reports", label: "Relatórios", iconKey: "reports" },
   { href: "/dashboard/procedures", label: "Procedimentos", iconKey: "procedures" },

@@ -16,6 +16,8 @@ import { ClinicalNotesForm } from "@/app/dashboard/patients/[id]/ClinicalNotesFo
 import { getAttachments, getAttachmentUrl } from "@/server/services/attachments";
 import { Odontogram } from "@/app/dashboard/patients/[id]/Odontogram";
 import { getOdontogram } from "@/server/services/odontograms";
+import Link from "next/link";
+import { anamnesisService } from "@/server/services/anamneses";
 
 export default async function PatientDetailsPage({
   params,
@@ -60,6 +62,7 @@ export default async function PatientDetailsPage({
     (sum, item) => sum + Number(item.charge_amount ?? 0),
     0
   );
+  const anamneses = await anamnesisService.listResponsesByPatient(resolvedParams.id);
 
   const attachments = permissions.readClinical
     ? await getAttachments(resolvedParams.id)
@@ -358,6 +361,39 @@ export default async function PatientDetailsPage({
                       <span>{item.payment_method ?? "-"}</span>
                     </div>
                   ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Anamneses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {anamneses.length === 0 ? (
+              <EmptyState
+                title="Sem anamneses enviadas"
+                description="As respostas de anamnese do paciente aparecerao aqui."
+              />
+            ) : (
+              <div className="space-y-2 text-sm">
+                {anamneses.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-md border p-2">
+                    <div className="space-y-1">
+                      <div className="font-medium">{item.form_title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(item.submitted_at).toLocaleDateString("pt-BR")} -{" "}
+                        {item.status === "signed" ? "Assinada" : "Enviada"}
+                      </div>
+                    </div>
+                    <Link href={`/anamneses/responses/${item.id}`}>
+                      <Button variant="outline" size="sm">
+                        Abrir
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

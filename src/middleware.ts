@@ -18,9 +18,11 @@ const PUBLIC_PATHS = [
   "/api/billing/checkout",
   "/api/stripe/webhook",
   "/patient-intake",
+  "/p/anamnese",
 ];
 
 const ROLE_GUARDS: Array<{ prefix: string; permission: keyof ReturnType<typeof can> }> = [
+  { prefix: "/anamneses", permission: "readPatients" },
   { prefix: "/dashboard/records", permission: "readClinical" },
   { prefix: "/dashboard/materials", permission: "manageInventory" },
   { prefix: "/dashboard/procedures", permission: "manageProcedures" },
