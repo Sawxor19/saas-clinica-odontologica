@@ -125,7 +125,7 @@ export async function createCheckoutSession(input: {
       cancel_url: `${appUrl}/signup/cancelled?intentId=${intent.id}`,
     },
     {
-      idempotencyKey: `signup_checkout:${intent.id}:${input.plan}`,
+      idempotencyKey: `signup_checkout_v2:${intent.id}:${input.plan}:${priceId}`,
     }
   );
 
