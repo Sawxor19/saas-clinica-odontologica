@@ -133,11 +133,11 @@ export function DeleteAccountCard({
       </div>
 
       {isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 px-4 backdrop-blur-[1px]">
           <div
             role="dialog"
             aria-modal="true"
-            className="w-full max-w-lg space-y-4 rounded-2xl border bg-background p-5 shadow-xl"
+            className="w-full max-w-lg space-y-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-[0_30px_80px_rgba(15,23,42,0.45)]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
