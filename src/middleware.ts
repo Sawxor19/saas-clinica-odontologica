@@ -26,6 +26,7 @@ const ROLE_GUARDS: Array<{ prefix: string; permission: keyof ReturnType<typeof c
   { prefix: "/dashboard/records", permission: "readClinical" },
   { prefix: "/dashboard/materials", permission: "manageInventory" },
   { prefix: "/dashboard/procedures", permission: "manageProcedures" },
+  { prefix: "/dashboard/budgets", permission: "writeBudgets" },
   { prefix: "/dashboard/finance", permission: "readFinance" },
   { prefix: "/dashboard/audit", permission: "viewAudit" },
   { prefix: "/dashboard/billing", permission: "manageBilling" },

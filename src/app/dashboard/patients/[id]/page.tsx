@@ -5,7 +5,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getPatient, getPatientAppointments } from "@/server/services/patients";
 import { notFound } from "next/navigation";
 import { getClinicContext } from "@/server/auth/context";
-import { addAttachmentAction, deleteAttachmentAction, updatePatientPhotoAction } from "@/app/dashboard/patients/[id]/actions";
+import {
+  addAttachmentAction,
+  deleteAttachmentAction,
+  issueClinicalDocumentAction,
+  updatePatientPhotoAction,
+} from "@/app/dashboard/patients/[id]/actions";
 import { getClinicalNotes } from "@/server/services/clinicalNotes";
 import { listProfilesByIds } from "@/server/repositories/profiles";
 import { Button } from "@/components/ui/button";
@@ -18,6 +23,8 @@ import { Odontogram } from "@/app/dashboard/patients/[id]/Odontogram";
 import { getOdontogram } from "@/server/services/odontograms";
 import Link from "next/link";
 import { anamnesisService } from "@/server/services/anamneses";
+import { ClinicalDocumentsForm } from "@/app/dashboard/patients/[id]/ClinicalDocumentsForm";
+import { getPrescriptionsByPatient } from "@/server/services/prescriptions";
 
 export default async function PatientDetailsPage({
   params,
@@ -34,8 +41,14 @@ export default async function PatientDetailsPage({
   const clinicalNotes = permissions.readClinical
     ? await getClinicalNotes(resolvedParams.id)
     : [];
+  const issuedDocuments = permissions.readClinical
+    ? await getPrescriptionsByPatient(resolvedParams.id)
+    : [];
   const authorIds = Array.from(
-    new Set(clinicalNotes.map((note) => note.dentist_id))
+    new Set([
+      ...clinicalNotes.map((note) => note.dentist_id),
+      ...issuedDocuments.map((item) => item.dentist_id),
+    ])
   );
   const authors = authorIds.length > 0
     ? await listProfilesByIds(clinicId, authorIds)
@@ -71,6 +84,12 @@ export default async function PatientDetailsPage({
     attachments.map(async (item) => ({
       ...item,
       url: await getAttachmentUrl(item.file_path),
+    }))
+  );
+  const issuedDocumentsWithUrl = await Promise.all(
+    issuedDocuments.map(async (item) => ({
+      ...item,
+      url: item.file_path ? await getAttachmentUrl(item.file_path) : null,
     }))
   );
 
@@ -292,6 +311,72 @@ export default async function PatientDetailsPage({
 
         <Card>
           <CardHeader>
+            <CardTitle>Receitas e atestados</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {permissions.writePrescriptions ? (
+              <ClinicalDocumentsForm
+                patientId={patient.id}
+                action={issueClinicalDocumentAction}
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                VocÃª nÃ£o tem permissÃ£o para emitir documentos clÃ­nicos.
+              </div>
+            )}
+
+            {issuedDocumentsWithUrl.length === 0 ? (
+              <EmptyState
+                title="Nenhum documento emitido"
+                description="As receitas, atestados e documentos clÃ­nicos emitidos aparecerÃ£o aqui."
+              />
+            ) : (
+              <div className="space-y-2">
+                {issuedDocumentsWithUrl.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-md border p-3 text-sm"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-medium">
+                          {item.title || "Documento clÃ­nico"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {authorMap.get(item.dentist_id) ?? "Profissional"} -{" "}
+                          {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-muted px-2 py-1 text-[11px]">
+                        {item.document_type === "prescription"
+                          ? "Receita"
+                          : item.document_type === "certificate"
+                            ? "Atestado"
+                            : "Documento"}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
+                      {item.content}
+                    </p>
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex text-xs text-primary"
+                      >
+                        Abrir PDF
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Odontograma</CardTitle>
           </CardHeader>
           <CardContent>
@@ -414,6 +499,10 @@ export default async function PatientDetailsPage({
                   <option value="document">Documento</option>
                   <option value="radiograph">Radiografia</option>
                   <option value="exam">Exame</option>
+                  <option value="prescription">Receita</option>
+                  <option value="certificate">Atestado</option>
+                  <option value="clinical_document">Documento clinico</option>
+                  <option value="contract">Contrato</option>
                 </select>
                 <FileInput
                   name="file"

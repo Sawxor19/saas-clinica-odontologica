@@ -50,6 +50,11 @@ sql/024_add_patient_intake_fields.sql
 sql/025_add_patient_drug_use_details.sql
 sql/026_relax_patient_intake_phone.sql
 sql/027_provisioning_hardening.sql
+sql/028_signup_intents_profile_fields.sql
+sql/029_stripe_trial_checkout.sql
+sql/030_anamneses_builder.sql
+sql/031_budget_workflow.sql
+sql/032_clinical_documents.sql
 ```
 
 ## Configuração do Stripe

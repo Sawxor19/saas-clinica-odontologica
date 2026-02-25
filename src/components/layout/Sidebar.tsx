@@ -8,6 +8,7 @@ type IconKey =
   | "patients"
   | "anamneses"
   | "schedule"
+  | "budgets"
   | "reports"
   | "procedures"
   | "materials"
@@ -20,6 +21,7 @@ const navItems: Array<{ href: string; label: string; iconKey: IconKey }> = [
   { href: "/dashboard/patients", label: "Pacientes", iconKey: "patients" },
   { href: "/anamneses", label: "Anamnese", iconKey: "anamneses" },
   { href: "/dashboard/schedule", label: "Agenda", iconKey: "schedule" },
+  { href: "/dashboard/budgets", label: "Orcamentos", iconKey: "budgets" },
   { href: "/dashboard/reports", label: "Relatórios", iconKey: "reports" },
   { href: "/dashboard/procedures", label: "Procedimentos", iconKey: "procedures" },
   { href: "/dashboard/materials", label: "Materiais", iconKey: "materials" },
@@ -34,6 +36,7 @@ export async function Sidebar({ className }: { className?: string }) {
     if (item.href.startsWith("/dashboard/reports")) return permissions.readFinance;
     if (item.href.startsWith("/dashboard/procedures")) return permissions.manageProcedures || permissions.readProcedures;
     if (item.href.startsWith("/dashboard/materials")) return permissions.manageInventory;
+    if (item.href.startsWith("/dashboard/budgets")) return permissions.writeBudgets;
     if (item.href.startsWith("/dashboard/finance")) return permissions.readFinance;
     if (item.href.startsWith("/dashboard/users")) return permissions.manageUsers;
     if (item.href.startsWith("/dashboard/audit")) return permissions.viewAudit;

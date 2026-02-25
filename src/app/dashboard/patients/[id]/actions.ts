@@ -5,6 +5,7 @@ import { addClinicalNote } from "@/server/services/clinicalNotes";
 import { addAttachment, removeAttachment } from "@/server/services/attachments";
 import { saveOdontogram } from "@/server/services/odontograms";
 import { updatePatientPhotoItem } from "@/server/services/patients";
+import { issueClinicalDocument } from "@/server/services/prescriptions";
 
 export async function addClinicalNoteAction(formData: FormData) {
   const patientId = String(formData.get("patient_id") || "");
@@ -54,5 +55,19 @@ export async function updatePatientPhotoAction(formData: FormData) {
     category: "photo",
   });
   await updatePatientPhotoItem(patientId, upload.path);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function issueClinicalDocumentAction(formData: FormData) {
+  const patientId = String(formData.get("patient_id") || "");
+  if (!patientId) return;
+
+  await issueClinicalDocument({
+    patient_id: patientId,
+    type: String(formData.get("document_type") || "prescription"),
+    title: String(formData.get("title") || ""),
+    content: String(formData.get("content") || ""),
+  });
+
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
