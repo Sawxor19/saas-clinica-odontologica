@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { DashboardOnboarding } from "@/components/layout/DashboardOnboarding";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +14,9 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col">
         <Topbar />
         <main className="flex-1 bg-background">{children}</main>
+        <Suspense fallback={null}>
+          <DashboardOnboarding />
+        </Suspense>
       </div>
     </div>
   );

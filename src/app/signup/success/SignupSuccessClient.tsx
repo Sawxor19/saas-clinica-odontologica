@@ -23,6 +23,8 @@ type ProvisioningResponse = {
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_AUTO_POLL_ATTEMPTS = 45;
+const REDIRECT_SECONDS = 5;
+const DASHBOARD_REDIRECT_URL = "/dashboard?welcome=1";
 
 const statusLabel: Record<string, string> = {
   received: "Recebido",
@@ -51,6 +53,7 @@ export default function SignupSuccessClient() {
     "Aguardando processamento..."
   );
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setError(null);
@@ -59,7 +62,8 @@ export default function SignupSuccessClient() {
       setLoading(false);
       setReady(true);
       setStatusMessage("Pagamento confirmado.");
-      return;
+      setCountdown((current) => current ?? REDIRECT_SECONDS);
+      return true;
     }
 
     const query = new URLSearchParams();
@@ -87,6 +91,7 @@ export default function SignupSuccessClient() {
       setLoading(false);
       setError(null);
       setStatusMessage("Conta ativada com sucesso.");
+      setCountdown((current) => current ?? REDIRECT_SECONDS);
       return true;
     }
 
@@ -94,11 +99,13 @@ export default function SignupSuccessClient() {
       setReady(false);
       setLoading(false);
       setError(data.job.errorMessage || "Falha ao ativar a conta.");
+      setCountdown(null);
       return true;
     }
 
     setReady(false);
     setLoading(true);
+    setCountdown(null);
     return false;
   }, [intentId, sessionId]);
 
@@ -145,6 +152,7 @@ export default function SignupSuccessClient() {
       } catch (initialError) {
         setLoading(false);
         setError((initialError as Error).message);
+        setCountdown(null);
       }
     };
 
@@ -156,15 +164,30 @@ export default function SignupSuccessClient() {
     };
   }, [fetchStatus]);
 
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown <= 0) {
+      window.location.assign(DASHBOARD_REDIRECT_URL);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((value) => (value === null ? null : value - 1));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md space-y-4 text-center">
         <h1 className="text-2xl font-semibold">
-          {ready ? "Conta ativada" : "Ativando sua conta"}
+          {ready ? "Sucesso! Sua conta esta pronta para uso!" : "Ativando sua conta"}
         </h1>
         <p className="text-muted-foreground">
           {ready
-            ? "Seu provisionamento foi concluido e o acesso ja pode ser liberado."
+            ? `Redirecionando para o dashboard em ${countdown ?? REDIRECT_SECONDS}s.`
             : "Estamos concluindo o provisionamento de usuario, clinica e assinatura."}
         </p>
         <div className="rounded-md border px-3 py-2 text-sm">
@@ -177,8 +200,8 @@ export default function SignupSuccessClient() {
         ) : null}
         <div className="flex justify-center gap-2">
           {ready ? (
-            <Link href="/login">
-              <Button>Ir para login</Button>
+            <Link href={DASHBOARD_REDIRECT_URL}>
+              <Button>Ir para dashboard agora</Button>
             </Link>
           ) : (
             <Button type="button" variant="outline" onClick={() => void fetchStatus()}>

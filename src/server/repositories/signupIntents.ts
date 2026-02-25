@@ -16,9 +16,14 @@ export type SignupIntent = {
   clinic_name: string | null;
   admin_name: string | null;
   whatsapp_number: string | null;
+  document_type: "cpf" | "cnpj" | null;
+  document_number: string | null;
   cpf_hash: string | null;
   phone_e164: string | null;
   phone_hash: string | null;
+  address: string | null;
+  cep: string | null;
+  timezone: string | null;
   email_verified: boolean | null;
   phone_verified_at: string | null;
   cpf_validated_at: string | null;

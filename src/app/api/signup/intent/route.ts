@@ -7,14 +7,27 @@ import {
   validateSignupIntentEligibility,
 } from "@/server/services/signup-intent.service";
 import { getAppUrl } from "@/server/config/app-url";
+import {
+  documentTypeLabel,
+  validateDocumentByType,
+} from "@/utils/validation/document";
+import { isStrongPassword } from "@/utils/validation/password";
 
 const schema = z.object({
-  clinicName: z.string().min(2, "Informe o nome da clínica."),
-  adminName: z.string().min(2, "Informe o nome do admin."),
-  email: z.string().email("Email inválido."),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres."),
-  cpf: z.string().min(11, "CPF inválido."),
-  phone: z.string().min(8, "Informe um telefone válido."),
+  adminName: z.string().min(2, "Informe o nome do responsavel."),
+  email: z.string().email("Email invalido."),
+  password: z
+    .string()
+    .min(8, "A senha deve ter no minimo 8 caracteres.")
+    .refine(isStrongPassword, {
+      message: "Use senha forte com maiuscula, minuscula, 8 caracteres e especial.",
+    }),
+  documentType: z.enum(["cpf", "cnpj"]),
+  documentNumber: z.string().min(11, "CPF/CNPJ invalido."),
+  phone: z.string().min(8, "Informe um telefone valido."),
+  timezone: z.string().min(3, "Informe a timezone da clinica."),
+  address: z.string().min(5, "Informe o endereco da clinica."),
+  cep: z.string().min(8, "Informe um CEP valido."),
 });
 
 function getRequestContext(request: Request) {
@@ -31,12 +44,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.errors[0]?.message }, { status: 400 });
   }
 
-  const { clinicName, adminName, email, password, cpf, phone } = parsed.data;
+  const {
+    adminName,
+    email,
+    password,
+    documentNumber,
+    documentType,
+    phone,
+    timezone,
+    address,
+    cep,
+  } = parsed.data;
+
+  if (!validateDocumentByType(documentNumber, documentType)) {
+    return NextResponse.json(
+      { error: `${documentTypeLabel(documentType)} invalido.` },
+      { status: 400 }
+    );
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
   const { ip, userAgent } = getRequestContext(request);
   const appUrl = getAppUrl();
 
   try {
-    await validateSignupIntentEligibility({ email, cpf, phone });
+    await validateSignupIntentEligibility({
+      email: normalizedEmail,
+      documentType,
+      documentNumber,
+      phone,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message || "Falha ao validar cadastro." },
@@ -46,7 +83,7 @@ export async function POST(request: Request) {
 
   const supabase = await supabaseServerClient();
   const { data: signupData, error: signupError } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
       emailRedirectTo: `${appUrl}/signup/verify`,
@@ -54,18 +91,25 @@ export async function POST(request: Request) {
   });
 
   if (signupError || !signupData?.user) {
-    return NextResponse.json({ error: signupError?.message || "Falha ao criar usuário." }, { status: 400 });
+    return NextResponse.json(
+      { error: signupError?.message || "Falha ao criar usuario." },
+      { status: 400 }
+    );
   }
 
   try {
     const intent = await createSignupIntent({
-      email,
+      email: normalizedEmail,
       userId: signupData.user.id,
-      cpf,
+      documentType,
+      documentNumber,
       phone,
-      clinicName,
+      clinicName: "Clinica",
       adminName,
       whatsappNumber: phone,
+      timezone,
+      address,
+      cep,
       ip,
       userAgent,
     });
@@ -73,6 +117,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ intentId: intent.id, next: "verify-email-and-phone" });
   } catch (error) {
     await supabaseAdmin().auth.admin.deleteUser(signupData.user.id);
-    return NextResponse.json({ error: (error as Error).message || "Falha ao iniciar cadastro." }, { status: 400 });
+    return NextResponse.json(
+      { error: (error as Error).message || "Falha ao iniciar cadastro." },
+      { status: 400 }
+    );
   }
 }

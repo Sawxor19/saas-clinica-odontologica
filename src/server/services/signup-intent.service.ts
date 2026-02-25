@@ -1,6 +1,11 @@
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { isSmsConfigured, sendSmsMessage } from "@/server/notifications/sms";
-import { normalizeCPF, validateCPF } from "@/utils/validation/cpf";
+import {
+  DocumentType,
+  documentTypeLabel,
+  normalizeDocument,
+  validateDocumentByType,
+} from "@/utils/validation/document";
 import { normalizePhoneToE164 } from "@/utils/validation/phone";
 import { hmacSha256 } from "@/utils/security/hmac";
 import { computeOtpVerification, generateOtp, hashOtp } from "@/utils/security/otp";
@@ -77,9 +82,14 @@ async function recycleOrphanedIntent(
   await updateSignupIntent(intent.id, {
     status: "EXPIRED",
     user_id: null,
+    document_type: null,
+    document_number: null,
     cpf_hash: null,
     phone_hash: null,
     phone_e164: null,
+    address: null,
+    cep: null,
+    timezone: null,
     email_verified: false,
     phone_verified_at: null,
     cpf_validated_at: null,
@@ -103,10 +113,14 @@ async function recycleOrphanedIntent(
   return null;
 }
 
-function getSignupHashes(input: { cpf: string; phone: string }) {
-  const cpfNormalized = normalizeCPF(input.cpf);
-  if (!validateCPF(cpfNormalized)) {
-    throw new Error("CPF invalido.");
+function getSignupHashes(input: {
+  documentType: DocumentType;
+  documentNumber: string;
+  phone: string;
+}) {
+  const documentNormalized = normalizeDocument(input.documentNumber);
+  if (!validateDocumentByType(documentNormalized, input.documentType)) {
+    throw new Error(`${documentTypeLabel(input.documentType)} invalido.`);
   }
 
   const phoneE164 = normalizePhoneToE164(input.phone);
@@ -115,23 +129,26 @@ function getSignupHashes(input: { cpf: string; phone: string }) {
   }
 
   const secret = getSignupSecret();
-  const cpfHash = hmacSha256(secret, cpfNormalized);
+  const cpfHash = hmacSha256(secret, documentNormalized);
   const phoneHash = hmacSha256(secret, phoneE164);
 
-  return { cpfHash, phoneHash, phoneE164 };
+  return { cpfHash, phoneHash, phoneE164, documentNormalized };
 }
 
 async function resolveSignupIntentConflicts(input: {
   email: string;
   cpfHash: string;
   phoneHash: string;
+  documentType: DocumentType;
 }) {
   const existingCpf = await recycleOrphanedIntent(
     await findSignupIntentByCpfHash(input.cpfHash),
     "signup.intent.recycled.cpf_conflict"
   );
   if (existingCpf && shouldBlockStatus(existingCpf.status)) {
-    throw new Error("CPF ja utilizado para cadastro.");
+    throw new Error(
+      `${documentTypeLabel(input.documentType)} ja utilizado para cadastro.`
+    );
   }
 
   const existingPhone = await recycleOrphanedIntent(
@@ -165,11 +182,13 @@ async function resolveSignupIntentConflicts(input: {
 
 export async function validateSignupIntentEligibility(input: {
   email: string;
-  cpf: string;
+  documentType: DocumentType;
+  documentNumber: string;
   phone: string;
 }) {
   const { cpfHash, phoneHash } = getSignupHashes({
-    cpf: input.cpf,
+    documentType: input.documentType,
+    documentNumber: input.documentNumber,
     phone: input.phone,
   });
 
@@ -177,6 +196,7 @@ export async function validateSignupIntentEligibility(input: {
     email: input.email,
     cpfHash,
     phoneHash,
+    documentType: input.documentType,
   });
 }
 
@@ -204,16 +224,21 @@ async function logSignupAudit(params: {
 export async function createSignupIntent(input: {
   email: string;
   userId: string;
-  cpf: string;
+  documentType: DocumentType;
+  documentNumber: string;
   phone: string;
   clinicName?: string | null;
   adminName?: string | null;
   whatsappNumber?: string | null;
+  timezone?: string | null;
+  address?: string | null;
+  cep?: string | null;
   ip?: string | null;
   userAgent?: string | null;
 }) {
-  const { cpfHash, phoneHash, phoneE164 } = getSignupHashes({
-    cpf: input.cpf,
+  const { cpfHash, phoneHash, phoneE164, documentNormalized } = getSignupHashes({
+    documentType: input.documentType,
+    documentNumber: input.documentNumber,
     phone: input.phone,
   });
 
@@ -221,6 +246,7 @@ export async function createSignupIntent(input: {
     email: input.email,
     cpfHash,
     phoneHash,
+    documentType: input.documentType,
   });
 
   const payload = {
@@ -229,9 +255,14 @@ export async function createSignupIntent(input: {
     clinic_name: input.clinicName ?? null,
     admin_name: input.adminName ?? null,
     whatsapp_number: input.whatsappNumber ?? null,
+    document_type: input.documentType,
+    document_number: documentNormalized,
     cpf_hash: cpfHash,
     phone_e164: phoneE164,
     phone_hash: phoneHash,
+    address: input.address ?? null,
+    cep: input.cep ?? null,
+    timezone: input.timezone ?? null,
     email_verified: false,
     phone_verified_at: REQUIRE_PHONE_VERIFICATION ? null : new Date().toISOString(),
     cpf_validated_at: new Date().toISOString(),
@@ -439,7 +470,7 @@ export async function ensureReadyForCheckout(intentId: string) {
   }
 
   if (!intent.cpf_validated_at || !intent.cpf_hash) {
-    throw new Error("CPF invalido.");
+    throw new Error("CPF/CNPJ invalido.");
   }
 
   await updateSignupIntent(intent.id, {

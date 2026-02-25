@@ -33,9 +33,14 @@ type SignupIntentRecord = {
   admin_name: string | null;
   email: string | null;
   whatsapp_number: string | null;
+  document_type: "cpf" | "cnpj" | null;
+  document_number: string | null;
   phone_e164: string | null;
   phone_verified_at: string | null;
   cpf_hash: string | null;
+  address: string | null;
+  cep: string | null;
+  timezone: string | null;
   plan: string | null;
   user_id: string | null;
   status: string | null;
@@ -75,7 +80,7 @@ async function getSignupIntent(intentId: string) {
   const { data, error } = await admin
     .from("signup_intents")
     .select(
-      "id, clinic_name, admin_name, email, whatsapp_number, phone_e164, phone_verified_at, cpf_hash, plan, user_id, status, clinic_id"
+      "id, clinic_name, admin_name, email, whatsapp_number, document_type, document_number, phone_e164, phone_verified_at, cpf_hash, address, cep, timezone, plan, user_id, status, clinic_id"
     )
     .eq("id", intentId)
     .maybeSingle();
@@ -280,7 +285,7 @@ async function provisionCheckoutSession(input: {
 
     const { data: profile, error: profileReadError } = await admin
       .from("profiles")
-      .select("clinic_id, role, full_name")
+      .select("clinic_id, role, full_name, phone, cpf, address, cep")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -310,8 +315,9 @@ async function provisionCheckoutSession(input: {
         .upsert(
           {
             owner_user_id: userId,
-            name: intent?.clinic_name || "Clinic",
+            name: intent?.clinic_name || "Clinica",
             whatsapp_number: intent?.whatsapp_number ?? intent?.phone_e164 ?? null,
+            timezone: intent?.timezone ?? "America/Sao_Paulo",
             subscription_status: "inactive",
             current_period_end: fallbackPeriodEnd(plan),
           },
@@ -326,11 +332,34 @@ async function provisionCheckoutSession(input: {
 
       clinicId = clinic.id as string;
     } else {
-      await admin
+      const { error: ownerUpdateError } = await admin
         .from("clinics")
         .update({ owner_user_id: userId })
         .eq("id", clinicId)
         .is("owner_user_id", null);
+
+      if (ownerUpdateError) {
+        throw new Error(ownerUpdateError.message);
+      }
+
+      const clinicPatch: Record<string, unknown> = {};
+      if (intent?.whatsapp_number || intent?.phone_e164) {
+        clinicPatch.whatsapp_number = intent?.whatsapp_number ?? intent?.phone_e164 ?? null;
+      }
+      if (intent?.timezone) {
+        clinicPatch.timezone = intent.timezone;
+      }
+
+      if (Object.keys(clinicPatch).length > 0) {
+        const { error: clinicPatchError } = await admin
+          .from("clinics")
+          .update(clinicPatch)
+          .eq("id", clinicId);
+
+        if (clinicPatchError) {
+          throw new Error(clinicPatchError.message);
+        }
+      }
     }
 
     await setProvisioningJobStep(job.job_id, "clinic_ok", {
@@ -350,6 +379,10 @@ async function provisionCheckoutSession(input: {
       session.customer_email ||
       intent?.email ||
       "Admin";
+    const profilePhone = profile?.phone || intent?.whatsapp_number || intent?.phone_e164 || null;
+    const profileDocument = profile?.cpf || intent?.document_number || null;
+    const profileAddress = profile?.address || intent?.address || null;
+    const profileCep = profile?.cep || intent?.cep || null;
 
     const { error: profileWriteError } = await admin.from("profiles").upsert(
       {
@@ -357,6 +390,10 @@ async function provisionCheckoutSession(input: {
         clinic_id: clinicId,
         full_name: fullName,
         role,
+        phone: profilePhone,
+        cpf: profileDocument,
+        address: profileAddress,
+        cep: profileCep,
         stripe_customer_id: stripeCustomerId,
         cpf_hash: intent?.cpf_hash ?? null,
         phone_e164: intent?.phone_e164 ?? null,
