@@ -15,7 +15,7 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 bg-white/40 backdrop-blur-[1px]">{children}</main>
+        <main className="flex-1 bg-white/88 backdrop-blur-[1px]">{children}</main>
         <Suspense fallback={null}>
           <DashboardOnboarding />
         </Suspense>

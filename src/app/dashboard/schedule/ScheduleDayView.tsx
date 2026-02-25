@@ -110,7 +110,7 @@ export function ScheduleDayView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/95 px-4 py-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Agenda do dia</p>
           <h2 className="text-base font-semibold">{dayLabel}</h2>
@@ -141,7 +141,7 @@ export function ScheduleDayView({
                 "group flex items-start gap-4 rounded-xl border p-3 transition-all duration-200",
                 hasAppointments
                   ? "border-primary/20 bg-primary/[0.03] hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_12px_24px_rgba(37,99,235,0.12)]"
-                  : "border-border/70 bg-background/75 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/[0.02] hover:shadow-[0_10px_20px_rgba(15,23,42,0.08)]",
+                  : "border-border/70 bg-background/90 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/[0.03] hover:shadow-[0_10px_20px_rgba(15,23,42,0.08)]",
                 slotActive ? "ring-2 ring-primary/20 shadow-[0_14px_28px_rgba(37,99,235,0.14)]" : ""
               )}
             >
@@ -372,7 +372,7 @@ export function ScheduleDayView({
                         </form>
                       </div>
 
-                      <div className="rounded-xl border border-dashed border-primary/30 bg-background/80 p-3">
+                      <div className="rounded-xl border border-dashed border-primary/30 bg-background/95 p-3">
                         <p className="text-xs font-medium">Reagendamento rapido</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {quickRescheduleOptions.map((option) => (

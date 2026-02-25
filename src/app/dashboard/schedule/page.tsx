@@ -57,7 +57,7 @@ export default async function SchedulePage() {
         title="Agenda"
         description="Visão rápida do dia com status e alertas de conflito."
       />
-      <Card className="border-border/70 bg-card/90">
+      <Card className="border-border/70 bg-card/97">
         <CardHeader>
           <CardTitle>Hoje</CardTitle>
         </CardHeader>
@@ -71,7 +71,7 @@ export default async function SchedulePage() {
             appointments.map((item) => (
               <div
                 key={item.id}
-                className="group flex items-center justify-between rounded-xl border border-border/70 bg-background/70 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.03] hover:shadow-[0_12px_24px_rgba(37,99,235,0.12)]"
+                className="group flex items-center justify-between rounded-xl border border-border/70 bg-background/92 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.04] hover:shadow-[0_12px_24px_rgba(37,99,235,0.12)]"
               >
                 <div>
                   <p className="text-sm font-semibold">Consulta</p>

@@ -42,7 +42,7 @@ export async function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen w-16 flex-col border-r border-border bg-white/80 py-6 backdrop-blur sm:w-20 lg:w-64",
+        "sticky top-0 flex h-screen w-16 flex-col border-r border-border bg-white/95 py-6 backdrop-blur-[2px] sm:w-20 lg:w-64",
         className
       )}
     >

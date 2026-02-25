@@ -4,7 +4,7 @@ import { logoutAction } from "@/app/(auth)/actions";
 
 export function Topbar() {
   return (
-    <header className="flex items-center justify-between border-b border-border bg-white/80 px-6 py-4 backdrop-blur">
+    <header className="flex items-center justify-between border-b border-border bg-white/95 px-6 py-4 backdrop-blur-[2px]">
       <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
         Gestao simples e rapida
       </div>

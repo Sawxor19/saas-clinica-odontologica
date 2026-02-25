@@ -32,11 +32,11 @@ export function Calendar({
   }, [value]);
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/95 p-4 shadow-[0_18px_36px_rgba(15,23,42,0.12)]">
+    <div className="rounded-2xl border border-border/70 bg-card/98 p-4 shadow-[0_18px_36px_rgba(15,23,42,0.12)]">
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
-          className="rounded-xl border border-input/90 bg-background/80 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
+          className="rounded-xl border border-input/90 bg-background/96 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
           onClick={() => goToMonth(-1)}
           aria-label="Mes anterior"
         >
@@ -47,7 +47,7 @@ export function Calendar({
         </span>
         <button
           type="button"
-          className="rounded-xl border border-input/90 bg-background/80 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
+          className="rounded-xl border border-input/90 bg-background/96 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
           onClick={() => goToMonth(1)}
           aria-label="Proximo mes"
         >
@@ -77,7 +77,7 @@ export function Calendar({
                 "h-10 rounded-xl border text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                 isSelected
                   ? "border-primary/55 bg-primary/10 text-primary shadow-[0_8px_18px_rgba(37,99,235,0.2)]"
-                  : "border-border/40 bg-background/70 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_16px_rgba(37,99,235,0.14)]"
+                  : "border-border/40 bg-background/92 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_16px_rgba(37,99,235,0.14)]"
               )}
               onClick={() => onSelect(date)}
             >

@@ -46,7 +46,7 @@ export function ScheduleCalendarView({
       <div className="lg:sticky lg:top-6 lg:self-start">
         <Calendar value={selectedDate} onSelect={setSelectedDate} />
       </div>
-      <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] lg:col-span-2">
+      <div className="rounded-2xl border border-border/70 bg-card/96 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] lg:col-span-2">
         <ScheduleDayView
           date={selectedDate}
           appointments={appointments}
