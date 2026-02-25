@@ -7,7 +7,6 @@ import { Wallet, TrendingUp, AlertTriangle, ChartNoAxesCombined, ReceiptText } f
 import { getPayables } from "@/server/services/payables";
 import { PayablesTable } from "@/app/dashboard/finance/PayablesTable";
 import { PayablesForm } from "@/app/dashboard/finance/PayablesForm";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { redirect } from "next/navigation";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -77,6 +76,20 @@ export default async function FinancePage() {
   const payablesPaid = payablesThisMonth
     .filter((item) => item.is_paid)
     .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+
+  const paymentsTableData = summary.payments.map((item) => ({
+    ...item,
+    paid_at_display: formatDate(item.paid_at),
+    charge_amount_display: formatCurrency(Number(item.charge_amount ?? 0)),
+    payment_method_display: item.payment_method ?? "-",
+  }));
+
+  const receivablesTableData = summary.receivables.map((item) => ({
+    ...item,
+    due_date_display: formatDate(item.due_date),
+    charge_amount_display: formatCurrency(Number(item.charge_amount ?? 0)),
+    due_status_display: item.due_status === "overdue" ? "Vencido" : "Pendente",
+  }));
 
   const netMonth = summary.monthTotal - payablesTotal;
   const overdueHasAlert = summary.overdueTotal > 0;
@@ -226,23 +239,15 @@ export default async function FinancePage() {
         <CardContent>
           <DataTable
             columns={[
-              {
-                key: "paid_at",
-                label: "Data",
-                render: (row) => formatDate(row.paid_at),
-              },
+              { key: "paid_at_display", label: "Data" },
               { key: "patient_name", label: "Paciente" },
               { key: "procedure_name", label: "Procedimento" },
-              {
-                key: "charge_amount",
-                label: "Valor",
-                render: (row) => formatCurrency(Number(row.charge_amount ?? 0)),
-              },
-              { key: "payment_method", label: "Metodo" },
+              { key: "charge_amount_display", label: "Valor" },
+              { key: "payment_method_display", label: "Metodo" },
             ]}
-            data={summary.payments}
+            data={paymentsTableData}
             searchPlaceholder="Buscar por paciente, data ou metodo"
-            searchKeys={["patient_name", "procedure_name", "paid_at", "payment_method"]}
+            searchKeys={["patient_name", "procedure_name", "paid_at_display", "payment_method_display"]}
           />
         </CardContent>
       </Card>
@@ -254,27 +259,15 @@ export default async function FinancePage() {
         <CardContent>
           <DataTable
             columns={[
-              {
-                key: "due_date",
-                label: "Vencimento",
-                render: (row) => formatDate(row.due_date),
-              },
+              { key: "due_date_display", label: "Vencimento" },
               { key: "patient_name", label: "Paciente" },
               { key: "procedure_name", label: "Procedimento" },
-              {
-                key: "charge_amount",
-                label: "Valor",
-                render: (row) => formatCurrency(Number(row.charge_amount ?? 0)),
-              },
-              {
-                key: "due_status",
-                label: "Status",
-                render: (row) => <StatusBadge status={row.due_status} />,
-              },
+              { key: "charge_amount_display", label: "Valor" },
+              { key: "due_status_display", label: "Status" },
             ]}
-            data={summary.receivables}
+            data={receivablesTableData}
             searchPlaceholder="Buscar por paciente, procedimento ou status"
-            searchKeys={["patient_name", "procedure_name", "due_status", "due_date"]}
+            searchKeys={["patient_name", "procedure_name", "due_status_display", "due_date_display"]}
           />
         </CardContent>
       </Card>
