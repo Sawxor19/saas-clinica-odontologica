@@ -28,6 +28,10 @@ function toDueDate(startsAt: string | null | undefined, endsAt: string | null | 
   return endsAt ?? startsAt ?? null;
 }
 
+function toValidId(value: unknown) {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export async function getFinanceSummary() {
   const { clinicId, permissions } = await getClinicContext();
   assertPermission(permissions, "readFinance");
@@ -75,13 +79,17 @@ export async function getFinanceSummary() {
     0
   );
 
-  const paymentPatientIds = monthPayments.map((row) => row.patient_id);
-  const receivablePatientIds = receivablesRaw.map((row) => row.patient_id);
-  const paymentProcedureIds = monthPayments.map((row) => row.procedure_id);
-  const receivableProcedureIds = receivablesRaw.map((row) => row.procedure_id);
+  const paymentPatientIds = monthPayments.map((row) => toValidId(row.patient_id));
+  const receivablePatientIds = receivablesRaw.map((row) => toValidId(row.patient_id));
+  const paymentProcedureIds = monthPayments.map((row) => toValidId(row.procedure_id));
+  const receivableProcedureIds = receivablesRaw.map((row) => toValidId(row.procedure_id));
 
-  const patientIds = Array.from(new Set([...paymentPatientIds, ...receivablePatientIds]));
-  const procedureIds = Array.from(new Set([...paymentProcedureIds, ...receivableProcedureIds]));
+  const patientIds = Array.from(
+    new Set([...paymentPatientIds, ...receivablePatientIds].filter((id): id is string => Boolean(id)))
+  );
+  const procedureIds = Array.from(
+    new Set([...paymentProcedureIds, ...receivableProcedureIds].filter((id): id is string => Boolean(id)))
+  );
   const [patients, procedures] = await Promise.all([
     listPatientsByIds(clinicId, patientIds),
     listProceduresByIds(clinicId, procedureIds),
