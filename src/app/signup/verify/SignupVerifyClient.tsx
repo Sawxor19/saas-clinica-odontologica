@@ -11,6 +11,25 @@ type CheckEmailResponse = {
   error?: string;
 };
 
+function decodeSearchParam(value: string) {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return value;
+  }
+}
+
+function getAuthLinkErrorMessage(errorCode: string, errorDescription: string) {
+  const description = decodeSearchParam(errorDescription);
+  if (errorCode === "otp_expired") {
+    return "Este link de confirmacao expirou. Solicite um novo e-mail de confirmacao.";
+  }
+  if (description) {
+    return description;
+  }
+  return "Link invalido ou expirado. Solicite novo e-mail de confirmacao.";
+}
+
 async function refreshEmailVerification(intentId: string): Promise<CheckEmailResponse> {
   const response = await fetch("/api/signup/check-email", {
     method: "POST",
@@ -31,6 +50,12 @@ export default function SignupVerifyClient() {
   const params = useSearchParams();
   const intentIdFromQuery = useMemo(() => params.get("intentId") || "", [params]);
   const code = useMemo(() => params.get("code") || "", [params]);
+  const authError = useMemo(() => params.get("error") || "", [params]);
+  const authErrorCode = useMemo(() => params.get("error_code") || "", [params]);
+  const authErrorDescription = useMemo(
+    () => params.get("error_description") || "",
+    [params]
+  );
 
   const [intentId, setIntentId] = useState(intentIdFromQuery);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -55,6 +80,9 @@ export default function SignupVerifyClient() {
     async function bootstrap() {
       setInitializing(true);
       setError(null);
+      const linkErrorMessage = authError
+        ? getAuthLinkErrorMessage(authErrorCode, authErrorDescription)
+        : null;
 
       const supabase = supabaseClient();
       if (code) {
@@ -63,7 +91,7 @@ export default function SignupVerifyClient() {
           const { data } = await supabase.auth.getSession();
           if (!data.session) {
             if (!active) return;
-            setError("Link invalido ou expirado. Solicite novo e-mail de confirmacao.");
+            setError(linkErrorMessage || "Link invalido ou expirado. Solicite novo e-mail de confirmacao.");
             setInitializing(false);
             return;
           }
@@ -82,7 +110,11 @@ export default function SignupVerifyClient() {
 
         if (!resolveResponse.ok || !resolveData.intentId) {
           if (!active) return;
-          setError(resolveData?.error || "Nao foi possivel localizar seu cadastro pendente.");
+          setError(
+            linkErrorMessage ||
+              resolveData?.error ||
+              "Nao foi possivel localizar seu cadastro pendente."
+          );
           setInitializing(false);
           return;
         }
@@ -123,7 +155,7 @@ export default function SignupVerifyClient() {
     return () => {
       active = false;
     };
-  }, [code, intentIdFromQuery, router]);
+  }, [authError, authErrorCode, authErrorDescription, code, intentIdFromQuery, router]);
 
   async function handleCheckEmail() {
     if (!intentId) return;
@@ -230,6 +262,17 @@ export default function SignupVerifyClient() {
           >
             Continuar para pagamento
           </Button>
+
+          {!intentId ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button type="button" variant="outline" onClick={() => router.push("/signup")}>
+                Voltar ao cadastro
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => router.push("/login")}>
+                Ir para login
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

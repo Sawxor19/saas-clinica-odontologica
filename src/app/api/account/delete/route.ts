@@ -163,6 +163,43 @@ export async function POST(request: Request) {
     email: user.email,
   });
 
+  const recyclePayload = {
+    status: "EXPIRED",
+    user_id: null,
+    cpf_hash: null,
+    phone_hash: null,
+    phone_e164: null,
+    email_verified: false,
+    phone_verified_at: null,
+    cpf_validated_at: null,
+    otp_hash: null,
+    otp_expires_at: null,
+    otp_attempts: 0,
+    otp_last_sent_at: null,
+    otp_locked_until: null,
+    otp_send_count: 0,
+    otp_send_window_start: null,
+    checkout_session_id: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: recycleByUserError } = await admin
+    .from("signup_intents")
+    .update(recyclePayload)
+    .eq("user_id", user.id);
+  if (recycleByUserError) {
+    return NextResponse.json({ error: recycleByUserError.message }, { status: 500 });
+  }
+
+  const { error: recycleByEmailError } = await admin
+    .from("signup_intents")
+    .update(recyclePayload)
+    .eq("email", user.email)
+    .is("user_id", null);
+  if (recycleByEmailError) {
+    return NextResponse.json({ error: recycleByEmailError.message }, { status: 500 });
+  }
+
   const { error: clinicDeleteError } = await admin.from("clinics").delete().eq("id", clinicId);
   if (clinicDeleteError) {
     return NextResponse.json({ error: clinicDeleteError.message }, { status: 500 });

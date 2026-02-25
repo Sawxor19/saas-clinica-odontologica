@@ -9,6 +9,7 @@ import {
   findSignupIntentByEmail,
   findSignupIntentById,
   findSignupIntentByPhoneHash,
+  type SignupIntent,
   insertSignupIntent,
   updateSignupIntent,
 } from "@/server/repositories/signupIntents";
@@ -35,6 +36,148 @@ function toDate(value?: string | null) {
 
 function shouldBlockStatus(status?: string | null) {
   return ["CONVERTED", "CHECKOUT_STARTED", "VERIFIED"].includes(status ?? "");
+}
+
+function isUserNotFoundError(error: { status?: number; message?: string } | null | undefined) {
+  if (!error) return false;
+  if (error.status === 404) return true;
+  return (error.message ?? "").toLowerCase().includes("not found");
+}
+
+async function isAuthUserMissing(userId: string) {
+  const admin = supabaseAdmin();
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (!error && data.user) {
+    return false;
+  }
+  if (isUserNotFoundError(error)) {
+    return true;
+  }
+  if (error) {
+    throw new Error(error.message);
+  }
+  return true;
+}
+
+async function recycleOrphanedIntent(
+  intent: SignupIntent | null,
+  action: string
+): Promise<SignupIntent | null> {
+  if (!intent || !shouldBlockStatus(intent.status)) {
+    return intent;
+  }
+
+  if (intent.user_id) {
+    const missingUser = await isAuthUserMissing(intent.user_id);
+    if (!missingUser) {
+      return intent;
+    }
+  }
+
+  await updateSignupIntent(intent.id, {
+    status: "EXPIRED",
+    user_id: null,
+    cpf_hash: null,
+    phone_hash: null,
+    phone_e164: null,
+    email_verified: false,
+    phone_verified_at: null,
+    cpf_validated_at: null,
+    otp_hash: null,
+    otp_expires_at: null,
+    otp_attempts: 0,
+    otp_last_sent_at: null,
+    otp_locked_until: null,
+    otp_send_count: 0,
+    otp_send_window_start: null,
+    checkout_session_id: null,
+    updated_at: new Date().toISOString(),
+  });
+
+  await logSignupAudit({
+    intentId: intent.id,
+    action,
+    metadata: { reason: "orphaned_signup_intent_recycled" },
+  });
+
+  return null;
+}
+
+function getSignupHashes(input: { cpf: string; phone: string }) {
+  const cpfNormalized = normalizeCPF(input.cpf);
+  if (!validateCPF(cpfNormalized)) {
+    throw new Error("CPF invalido.");
+  }
+
+  const phoneE164 = normalizePhoneToE164(input.phone);
+  if (!phoneE164) {
+    throw new Error("Telefone invalido.");
+  }
+
+  const secret = getSignupSecret();
+  const cpfHash = hmacSha256(secret, cpfNormalized);
+  const phoneHash = hmacSha256(secret, phoneE164);
+
+  return { cpfHash, phoneHash, phoneE164 };
+}
+
+async function resolveSignupIntentConflicts(input: {
+  email: string;
+  cpfHash: string;
+  phoneHash: string;
+}) {
+  const existingCpf = await recycleOrphanedIntent(
+    await findSignupIntentByCpfHash(input.cpfHash),
+    "signup.intent.recycled.cpf_conflict"
+  );
+  if (existingCpf && shouldBlockStatus(existingCpf.status)) {
+    throw new Error("CPF ja utilizado para cadastro.");
+  }
+
+  const existingPhone = await recycleOrphanedIntent(
+    await findSignupIntentByPhoneHash(input.phoneHash),
+    "signup.intent.recycled.phone_conflict"
+  );
+  if (existingPhone && shouldBlockStatus(existingPhone.status)) {
+    throw new Error("Telefone ja utilizado para cadastro.");
+  }
+
+  let existingByEmail = await recycleOrphanedIntent(
+    await findSignupIntentByEmail(input.email),
+    "signup.intent.recycled.email_conflict"
+  );
+
+  if (!existingByEmail) {
+    const refreshedByEmail = await findSignupIntentByEmail(input.email);
+    if (refreshedByEmail && !shouldBlockStatus(refreshedByEmail.status)) {
+      existingByEmail = refreshedByEmail;
+    } else if (refreshedByEmail && shouldBlockStatus(refreshedByEmail.status)) {
+      throw new Error("Cadastro ja iniciado para este email.");
+    }
+  }
+
+  if (existingByEmail && shouldBlockStatus(existingByEmail.status)) {
+    throw new Error("Cadastro ja iniciado para este email.");
+  }
+
+  return existingByEmail;
+}
+
+export async function validateSignupIntentEligibility(input: {
+  email: string;
+  cpf: string;
+  phone: string;
+}) {
+  const { cpfHash, phoneHash } = getSignupHashes({
+    cpf: input.cpf,
+    phone: input.phone,
+  });
+
+  await resolveSignupIntentConflicts({
+    email: input.email,
+    cpfHash,
+    phoneHash,
+  });
 }
 
 async function logSignupAudit(params: {
@@ -69,34 +212,16 @@ export async function createSignupIntent(input: {
   ip?: string | null;
   userAgent?: string | null;
 }) {
-  const cpfNormalized = normalizeCPF(input.cpf);
-  if (!validateCPF(cpfNormalized)) {
-    throw new Error("CPF inválido.");
-  }
+  const { cpfHash, phoneHash, phoneE164 } = getSignupHashes({
+    cpf: input.cpf,
+    phone: input.phone,
+  });
 
-  const phoneE164 = normalizePhoneToE164(input.phone);
-  if (!phoneE164) {
-    throw new Error("Telefone inválido.");
-  }
-
-  const secret = getSignupSecret();
-  const cpfHash = hmacSha256(secret, cpfNormalized);
-  const phoneHash = hmacSha256(secret, phoneE164);
-
-  const existingCpf = await findSignupIntentByCpfHash(cpfHash);
-  if (existingCpf && shouldBlockStatus(existingCpf.status)) {
-    throw new Error("CPF já utilizado para cadastro.");
-  }
-
-  const existingPhone = await findSignupIntentByPhoneHash(phoneHash);
-  if (existingPhone && shouldBlockStatus(existingPhone.status)) {
-    throw new Error("Telefone já utilizado para cadastro.");
-  }
-
-  const existingByEmail = await findSignupIntentByEmail(input.email);
-  if (existingByEmail && shouldBlockStatus(existingByEmail.status)) {
-    throw new Error("Cadastro já iniciado para este email.");
-  }
+  const existingByEmail = await resolveSignupIntentConflicts({
+    email: input.email,
+    cpfHash,
+    phoneHash,
+  });
 
   const payload = {
     email: input.email,
@@ -135,19 +260,19 @@ export async function createSignupIntent(input: {
 export async function sendPhoneOtp(intentId: string, ip?: string | null, userAgent?: string | null) {
   const intent = await findSignupIntentById(intentId);
   if (intent.status === "CONVERTED") {
-    throw new Error("Cadastro já concluído.");
+    throw new Error("Cadastro ja concluido.");
   }
   if (intent.status === "BLOCKED" || intent.status === "EXPIRED") {
     throw new Error("Cadastro indisponivel.");
   }
   if (intent.phone_verified_at) {
-    throw new Error("Telefone já verificado.");
+    throw new Error("Telefone ja verificado.");
   }
 
   const now = new Date();
   const lastSentAt = toDate(intent.otp_last_sent_at);
   if (lastSentAt && now.getTime() - lastSentAt.getTime() < OTP_RESEND_COOLDOWN_SECONDS * 1000) {
-    throw new Error("Aguarde alguns segundos para reenviar o código.");
+    throw new Error("Aguarde alguns segundos para reenviar o codigo.");
   }
 
   const windowStart = toDate(intent.otp_send_window_start);
@@ -156,7 +281,7 @@ export async function sendPhoneOtp(intentId: string, ip?: string | null, userAge
     : now;
   const sendCount = windowStart && sendWindowStart === windowStart ? intent.otp_send_count ?? 0 : 0;
   if (sendCount >= OTP_MAX_SEND_PER_DAY) {
-    throw new Error("Limite diário de envio atingido.");
+    throw new Error("Limite diario de envio atingido.");
   }
 
   const otp = generateOtp(6);
@@ -175,12 +300,12 @@ export async function sendPhoneOtp(intentId: string, ip?: string | null, userAge
   });
 
   if (!intent.phone_e164) {
-    throw new Error("Telefone não cadastrado.");
+    throw new Error("Telefone nao cadastrado.");
   }
 
   await sendSmsMessage({
     to: intent.phone_e164,
-    body: `Seu código de verificação é ${otp}. Ele expira em ${OTP_EXPIRY_MINUTES} minutos.`,
+    body: `Seu codigo de verificacao e ${otp}. Ele expira em ${OTP_EXPIRY_MINUTES} minutos.`,
   });
 
   await logSignupAudit({
@@ -231,7 +356,7 @@ export async function verifyPhoneOtp(intentId: string, otp: string, ip?: string 
   }
 
   if (result.status === "expired") {
-    throw new Error("Código expirado. Solicite um novo.");
+    throw new Error("Codigo expirado. Solicite um novo.");
   }
 
   if (result.status === "invalid") {
@@ -239,7 +364,7 @@ export async function verifyPhoneOtp(intentId: string, otp: string, ip?: string 
       otp_attempts: result.attempts,
       updated_at: now.toISOString(),
     });
-    throw new Error("Código inválido.");
+    throw new Error("Codigo invalido.");
   }
 
   const emailVerified = await assertEmailVerifiedBySupabase(intent.user_id);
@@ -306,15 +431,15 @@ export async function ensureReadyForCheckout(intentId: string) {
       status: "PENDING_VERIFICATIONS",
       updated_at: new Date().toISOString(),
     });
-    throw new Error("E-mail ainda não confirmado.");
+    throw new Error("E-mail ainda nao confirmado.");
   }
 
   if (REQUIRE_PHONE_VERIFICATION && !intent.phone_verified_at) {
-    throw new Error("Telefone ainda não verificado.");
+    throw new Error("Telefone ainda nao verificado.");
   }
 
   if (!intent.cpf_validated_at || !intent.cpf_hash) {
-    throw new Error("CPF inválido.");
+    throw new Error("CPF invalido.");
   }
 
   await updateSignupIntent(intent.id, {

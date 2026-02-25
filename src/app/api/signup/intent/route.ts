@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
-import { createSignupIntent } from "@/server/services/signup-intent.service";
+import {
+  createSignupIntent,
+  validateSignupIntentEligibility,
+} from "@/server/services/signup-intent.service";
 import { getAppUrl } from "@/server/config/app-url";
 
 const schema = z.object({
@@ -31,6 +34,15 @@ export async function POST(request: Request) {
   const { clinicName, adminName, email, password, cpf, phone } = parsed.data;
   const { ip, userAgent } = getRequestContext(request);
   const appUrl = getAppUrl();
+
+  try {
+    await validateSignupIntentEligibility({ email, cpf, phone });
+  } catch (error) {
+    return NextResponse.json(
+      { error: (error as Error).message || "Falha ao validar cadastro." },
+      { status: 400 }
+    );
+  }
 
   const supabase = await supabaseServerClient();
   const { data: signupData, error: signupError } = await supabase.auth.signUp({
