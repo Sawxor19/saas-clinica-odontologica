@@ -155,12 +155,6 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <a className="hidden text-sm text-slate-300 transition hover:text-white md:inline-flex" href="#planos">
-            Planos
-          </a>
-          <a className="hidden text-sm text-slate-300 transition hover:text-white md:inline-flex" href="#recursos">
-            Recursos
-          </a>
           <Link href="/login" className={styles.loginButton}>
             Entrar
           </Link>
@@ -255,6 +249,41 @@ export default function Home() {
           </aside>
         </section>
 
+        <section id="planos" className="mx-auto w-full max-w-7xl px-6 pb-16 md:px-8 lg:px-10 lg:pb-24">
+          <div className={`${styles.reveal} space-y-3`} style={{ animationDelay: "120ms" }}>
+            <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">Planos e ciclos</p>
+            <h2 className="max-w-3xl text-3xl font-semibold text-white md:text-4xl">
+              Estrutura clara de investimento para cada etapa da clinica
+            </h2>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {plans.map((plan, index) => (
+              <article
+                key={plan.name}
+                className={`${styles.planCard} ${styles.reveal}`}
+                style={{ animationDelay: `${140 + index * 70}ms` }}
+              >
+                <p className="text-xs uppercase tracking-[0.16em] text-cyan-200">{plan.name}</p>
+                <p className="mt-4 text-3xl font-semibold text-white">{plan.value}</p>
+                <p className="mt-1 text-xs text-slate-400">{plan.cadence}</p>
+                <p className="mt-5 text-sm font-medium text-slate-100">{plan.highlight}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">{plan.focus}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-10 rounded-2xl border border-cyan-500/30 bg-cyan-400/10 p-6 text-sm text-cyan-50 md:flex md:items-center md:justify-between md:gap-8">
+            <p className="leading-relaxed">
+              Um unico botao de entrada: crie sua conta, valide o trial e siga para o dashboard com
+              provisionamento seguro.
+            </p>
+            <div className="mt-4 text-xs uppercase tracking-[0.16em] text-cyan-100 md:mt-0">
+              Checkout Stripe + verificacao de perfil + onboarding guiado
+            </div>
+          </div>
+        </section>
+
         <section id="recursos" className="mx-auto w-full max-w-7xl px-6 pb-16 md:px-8 lg:px-10 lg:pb-24">
           <div className={`${styles.reveal} space-y-3`} style={{ animationDelay: "80ms" }}>
             <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">Recursos principais</p>
@@ -304,40 +333,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="planos" className="mx-auto w-full max-w-7xl px-6 pb-24 md:px-8 lg:px-10">
-          <div className={`${styles.reveal} space-y-3`} style={{ animationDelay: "120ms" }}>
-            <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">Planos e ciclos</p>
-            <h2 className="max-w-3xl text-3xl font-semibold text-white md:text-4xl">
-              Estrutura clara de investimento para cada etapa da clinica
-            </h2>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {plans.map((plan, index) => (
-              <article
-                key={plan.name}
-                className={`${styles.planCard} ${styles.reveal}`}
-                style={{ animationDelay: `${140 + index * 70}ms` }}
-              >
-                <p className="text-xs uppercase tracking-[0.16em] text-cyan-200">{plan.name}</p>
-                <p className="mt-4 text-3xl font-semibold text-white">{plan.value}</p>
-                <p className="mt-1 text-xs text-slate-400">{plan.cadence}</p>
-                <p className="mt-5 text-sm font-medium text-slate-100">{plan.highlight}</p>
-                <p className="mt-3 text-sm leading-relaxed text-slate-300">{plan.focus}</p>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-10 rounded-2xl border border-cyan-500/30 bg-cyan-400/10 p-6 text-sm text-cyan-50 md:flex md:items-center md:justify-between md:gap-8">
-            <p className="leading-relaxed">
-              Um unico botao de entrada: crie sua conta, valide o trial e siga para o dashboard com
-              provisionamento seguro.
-            </p>
-            <div className="mt-4 text-xs uppercase tracking-[0.16em] text-cyan-100 md:mt-0">
-              Checkout Stripe + verificacao de perfil + onboarding guiado
-            </div>
-          </div>
-        </section>
       </main>
     </div>
   );
