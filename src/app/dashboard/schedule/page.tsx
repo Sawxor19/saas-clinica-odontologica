@@ -57,7 +57,7 @@ export default async function SchedulePage() {
         title="Agenda"
         description="Visão rápida do dia com status e alertas de conflito."
       />
-      <Card>
+      <Card className="border-border/70 bg-card/90">
         <CardHeader>
           <CardTitle>Hoje</CardTitle>
         </CardHeader>
@@ -71,15 +71,15 @@ export default async function SchedulePage() {
             appointments.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
+                className="group flex items-center justify-between rounded-xl border border-border/70 bg-background/70 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.03] hover:shadow-[0_12px_24px_rgba(37,99,235,0.12)]"
               >
                 <div>
-                  <p className="text-sm font-medium">Consulta</p>
+                  <p className="text-sm font-semibold">Consulta</p>
                   <p className="text-xs text-muted-foreground">
                     {formatTimeInZone(new Date(item.starts_at), clinicTimezone)}
                   </p>
                   <Link
-                    className="text-xs text-primary"
+                    className="text-xs text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline"
                     href={`/dashboard/patients/${item.patient_id}`}
                   >
                     {patientMap.get(item.patient_id)?.full_name ?? "Paciente"}

@@ -32,50 +32,52 @@ export function Calendar({
   }, [value]);
 
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="mb-4 flex items-center justify-between text-sm font-medium">
+    <div className="rounded-2xl border border-border/70 bg-card/95 p-4 shadow-[0_18px_36px_rgba(15,23,42,0.12)]">
+      <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
-          className="rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+          className="rounded-xl border border-input/90 bg-background/80 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
           onClick={() => goToMonth(-1)}
-          aria-label="Mês anterior"
+          aria-label="Mes anterior"
         >
-          ‹
+          {"<"}
         </button>
-        <span>
+        <span className="text-sm font-semibold capitalize tracking-tight">
           {value.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
         </span>
         <button
           type="button"
-          className="rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+          className="rounded-xl border border-input/90 bg-background/80 px-2.5 py-1.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_18px_rgba(37,99,235,0.16)]"
           onClick={() => goToMonth(1)}
-          aria-label="Próximo mês"
+          aria-label="Proximo mes"
         >
-          ›
+          {">"}
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1.5 text-xs text-muted-foreground">
         {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
-          <div key={`${day}-${index}`} className="text-center">
+          <div
+            key={`${day}-${index}`}
+            className="text-center text-[11px] font-medium uppercase tracking-[0.14em]"
+          >
             {day}
           </div>
         ))}
       </div>
-      <div className="mt-2 grid grid-cols-7 gap-2 text-sm">
+      <div className="mt-2 grid grid-cols-7 gap-1.5 text-sm">
         {days.map((date, idx) => {
           if (!date) {
             return <div key={`empty-${idx}`} />;
           }
-          const isSelected =
-            date.toDateString() === value.toDateString();
+          const isSelected = date.toDateString() === value.toDateString();
           return (
             <button
               key={date.toISOString()}
               className={cn(
-                "h-10 rounded-md border text-sm",
+                "h-10 rounded-xl border text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                 isSelected
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-transparent hover:bg-muted"
+                  ? "border-primary/55 bg-primary/10 text-primary shadow-[0_8px_18px_rgba(37,99,235,0.2)]"
+                  : "border-border/40 bg-background/70 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:text-primary hover:shadow-[0_8px_16px_rgba(37,99,235,0.14)]"
               )}
               onClick={() => onSelect(date)}
             >

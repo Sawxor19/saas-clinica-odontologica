@@ -18,6 +18,7 @@ import {
   getLocalDateParts,
   getZonedDateKey,
 } from "@/lib/timezone";
+import { cn } from "@/lib/utils";
 
 type Appointment = {
   id: string;
@@ -98,8 +99,26 @@ export function ScheduleDayView({
     return buildQuickRescheduleOptions(selectedAppointment);
   }, [selectedAppointment]);
 
+  const dayLabel = useMemo(() => {
+    const formatted = date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+    });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  }, [date]);
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Agenda do dia</p>
+          <h2 className="text-base font-semibold">{dayLabel}</h2>
+        </div>
+        <p className="rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-1 text-xs font-medium text-primary">
+          {dayAppointments.length} {dayAppointments.length === 1 ? "agendamento" : "agendamentos"}
+        </p>
+      </div>
       <div className="grid gap-2">
         {HOURS.map((hour) => {
           const slotAppointments = dayAppointments.filter((item) => {
@@ -108,22 +127,32 @@ export function ScheduleDayView({
           });
 
           const slotAppointment = slotAppointments[0];
+          const hasAppointments = slotAppointments.length > 0;
           const isSelectedHour = selectedHour === hour;
-          const isSelectedAppointment =
-            selectedAppointmentId && slotAppointment?.id === selectedAppointmentId;
+          const isSelectedAppointment = Boolean(
+            selectedAppointmentId && slotAppointment?.id === selectedAppointmentId
+          );
+          const slotActive = isSelectedHour || isSelectedAppointment;
 
           return (
             <div
               key={hour}
-              className="flex items-start gap-4 rounded-lg border bg-card p-3"
+              className={cn(
+                "group flex items-start gap-4 rounded-xl border p-3 transition-all duration-200",
+                hasAppointments
+                  ? "border-primary/20 bg-primary/[0.03] hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_12px_24px_rgba(37,99,235,0.12)]"
+                  : "border-border/70 bg-background/75 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/[0.02] hover:shadow-[0_10px_20px_rgba(15,23,42,0.08)]",
+                slotActive ? "ring-2 ring-primary/20 shadow-[0_14px_28px_rgba(37,99,235,0.14)]" : ""
+              )}
             >
-              <div className="w-16 text-xs text-muted-foreground">
+              <div className="flex h-9 w-16 items-center justify-center rounded-lg border border-border/70 bg-card text-xs font-semibold text-muted-foreground">
                 {String(hour).padStart(2, "0")}:00
               </div>
               <div className="flex-1 space-y-2">
                 {slotAppointments.length === 0 ? (
                   <button
-                    className="text-xs text-primary"
+                    type="button"
+                    className="inline-flex items-center rounded-lg border border-dashed border-primary/35 bg-primary/[0.06] px-3 py-1.5 text-xs font-medium text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/[0.1] hover:shadow-[0_10px_20px_rgba(37,99,235,0.14)]"
                     onClick={() => {
                       setSelectedHour(hour);
                       setSelectedAppointmentId(null);
@@ -132,10 +161,10 @@ export function ScheduleDayView({
                     + Agendar neste horario
                   </button>
                 ) : (
-                  <div className="flex items-center justify-between rounded-md border px-2 py-1">
+                  <div className="flex items-center justify-between rounded-lg border border-border/70 bg-card/95 px-2.5 py-2 transition-all duration-200 group-hover:border-primary/35 group-hover:shadow-[0_10px_20px_rgba(15,23,42,0.08)]">
                     <button
                       type="button"
-                      className="flex flex-1 items-center justify-between gap-2 text-left"
+                      className="flex flex-1 items-center justify-between gap-2 text-left transition-colors hover:text-primary"
                       onClick={() => {
                         if (slotAppointment) {
                           setSelectedAppointmentId(slotAppointment.id);
@@ -160,7 +189,7 @@ export function ScheduleDayView({
                 )}
 
                 {isSelectedHour ? (
-                  <div className="rounded-lg border bg-background p-3">
+                  <div className="rounded-xl border border-primary/30 bg-primary/[0.04] p-3 shadow-[0_12px_24px_rgba(37,99,235,0.12)]">
                     <h3 className="text-xs font-medium">Agendar {String(hour).padStart(2, "0")}:00</h3>
                     <form
                       className="mt-3 grid gap-2 md:grid-cols-2"
@@ -243,7 +272,7 @@ export function ScheduleDayView({
                 ) : null}
 
                 {isSelectedAppointment && selectedAppointment ? (
-                  <div className="rounded-lg border bg-background p-3">
+                  <div className="rounded-xl border border-primary/30 bg-primary/[0.04] p-3 shadow-[0_12px_24px_rgba(37,99,235,0.12)]">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-xs font-medium">Detalhes do agendamento</h3>
@@ -294,12 +323,21 @@ export function ScheduleDayView({
                           <form key={item.value} action={updateAppointmentStatusAction}>
                             <input type="hidden" name="appointment_id" value={selectedAppointment.id} />
                             <input type="hidden" name="status" value={item.value} />
-                            <button className={`text-xs ${item.className}`}>{item.label}</button>
+                            <button
+                              className={cn(
+                                "rounded-full border border-current/30 px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:-translate-y-0.5 hover:bg-current/10",
+                                item.className
+                              )}
+                            >
+                              {item.label}
+                            </button>
                           </form>
                         ))}
                         <form action={deleteAppointmentAction}>
                           <input type="hidden" name="appointment_id" value={selectedAppointment.id} />
-                          <button className="text-xs text-destructive">Remover agendamento</button>
+                          <button className="rounded-full border border-destructive/30 px-2.5 py-1 text-xs font-medium text-destructive transition-all duration-200 hover:-translate-y-0.5 hover:bg-destructive/10">
+                            Remover agendamento
+                          </button>
                         </form>
                       </div>
 
@@ -334,7 +372,7 @@ export function ScheduleDayView({
                         </form>
                       </div>
 
-                      <div className="rounded-lg border border-dashed border-border p-3">
+                      <div className="rounded-xl border border-dashed border-primary/30 bg-background/80 p-3">
                         <p className="text-xs font-medium">Reagendamento rapido</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {quickRescheduleOptions.map((option) => (
