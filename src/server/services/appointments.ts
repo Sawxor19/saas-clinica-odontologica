@@ -3,12 +3,15 @@ import { getClinicContext } from "@/server/auth/context";
 import { assertPermission } from "@/server/rbac/guard";
 import {
   createAppointment,
-  listAppointments,
+  deleteAppointment,
+  getAppointmentById,
   hasConflictingAppointment,
+  listAppointments,
+  updateAppointmentDateTime,
   updateAppointmentStatus,
 } from "@/server/repositories/appointments";
 import { auditLog } from "@/server/audit/auditLog";
-import { deleteAppointment } from "@/server/repositories/appointments";
+import { z } from "zod";
 
 export async function getAppointments(start?: string, end?: string) {
   const { clinicId, permissions, userId } = await getClinicContext();
@@ -86,6 +89,61 @@ export async function updateAppointmentStatusItem(input: {
       status: input.status,
       payment_status: input.payment_status ?? null,
       payment_method: input.payment_method ?? null,
+    },
+  });
+}
+
+const rescheduleSchema = z.object({
+  appointmentId: z.string().uuid(),
+  starts_at: z.string().datetime(),
+  ends_at: z.string().datetime(),
+});
+
+export async function rescheduleAppointmentItem(input: {
+  appointmentId: string;
+  starts_at: string;
+  ends_at: string;
+}) {
+  const { clinicId, permissions, userId } = await getClinicContext();
+  assertPermission(permissions, "writeSchedule");
+
+  const parsed = rescheduleSchema.parse(input);
+  const appointment = await getAppointmentById(clinicId, parsed.appointmentId);
+  if (!appointment) {
+    throw new Error("Agendamento nao encontrado");
+  }
+
+  const startsAt = new Date(parsed.starts_at);
+  const endsAt = new Date(parsed.ends_at);
+  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+    throw new Error("Periodo de reagendamento invalido");
+  }
+
+  const conflict = await hasConflictingAppointment(
+    clinicId,
+    appointment.dentist_id,
+    parsed.starts_at,
+    parsed.ends_at,
+    parsed.appointmentId
+  );
+  if (conflict) {
+    throw new Error("Conflito de horario");
+  }
+
+  await updateAppointmentDateTime(clinicId, parsed.appointmentId, {
+    starts_at: parsed.starts_at,
+    ends_at: parsed.ends_at,
+  });
+
+  await auditLog({
+    clinicId,
+    userId,
+    action: "appointments.reschedule",
+    entity: "appointment",
+    entityId: parsed.appointmentId,
+    metadata: {
+      starts_at: parsed.starts_at,
+      ends_at: parsed.ends_at,
     },
   });
 }

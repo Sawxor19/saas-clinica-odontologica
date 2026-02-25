@@ -172,10 +172,11 @@ export async function hasConflictingAppointment(
   clinicId: string,
   dentistId: string,
   startsAt: string,
-  endsAt: string
+  endsAt: string,
+  excludeAppointmentId?: string
 ) {
   const supabase = await supabaseServerClient();
-  const { data, error } = await supabase
+  let request = supabase
     .from("appointments")
     .select("id")
     .eq("clinic_id", clinicId)
@@ -184,8 +185,45 @@ export async function hasConflictingAppointment(
     .gt("ends_at", startsAt)
     .limit(1);
 
+  if (excludeAppointmentId) {
+    request = request.neq("id", excludeAppointmentId);
+  }
+
+  const { data, error } = await request;
+
   if (error) throw new Error(error.message);
   return (data?.length ?? 0) > 0;
+}
+
+export async function getAppointmentById(clinicId: string, appointmentId: string) {
+  const supabase = await supabaseServerClient();
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("id, dentist_id, starts_at, ends_at")
+    .eq("clinic_id", clinicId)
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updateAppointmentDateTime(
+  clinicId: string,
+  appointmentId: string,
+  input: { starts_at: string; ends_at: string }
+) {
+  const supabase = await supabaseServerClient();
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      starts_at: input.starts_at,
+      ends_at: input.ends_at,
+    })
+    .eq("clinic_id", clinicId)
+    .eq("id", appointmentId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteAppointment(clinicId: string, appointmentId: string) {

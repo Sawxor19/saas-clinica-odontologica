@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { createAppointmentAction } from "@/app/dashboard/schedule/actions";
-import { updateAppointmentStatusAction, deleteAppointmentAction } from "@/app/dashboard/schedule/actions";
+import {
+  createAppointmentAction,
+  deleteAppointmentAction,
+  rescheduleAppointmentAction,
+  updateAppointmentStatusAction,
+} from "@/app/dashboard/schedule/actions";
 import {
   buildDateTimeLocal,
   formatTimeInZone,
@@ -39,6 +43,21 @@ type Props = {
 };
 
 const HOURS = Array.from({ length: 12 }).map((_, idx) => 8 + idx);
+
+function buildQuickRescheduleOptions(appointment: Appointment) {
+  const startMs = new Date(appointment.starts_at).getTime();
+  const endMs = new Date(appointment.ends_at).getTime();
+  const durationMs =
+    Number.isFinite(endMs - startMs) && endMs > startMs ? endMs - startMs : 60 * 60 * 1000;
+
+  const option = (label: string, deltaMinutes: number) => {
+    const startsAt = new Date(startMs + deltaMinutes * 60 * 1000).toISOString();
+    const endsAt = new Date(new Date(startsAt).getTime() + durationMs).toISOString();
+    return { label, startsAt, endsAt };
+  };
+
+  return [option("+30 min", 30), option("+1 hora", 60), option("+1 dia", 24 * 60)];
+}
 
 export function ScheduleDayView({
   date,
@@ -74,6 +93,11 @@ export function ScheduleDayView({
     return dayAppointments.find((item) => item.id === selectedAppointmentId) ?? null;
   }, [dayAppointments, selectedAppointmentId]);
 
+  const quickRescheduleOptions = useMemo(() => {
+    if (!selectedAppointment) return [];
+    return buildQuickRescheduleOptions(selectedAppointment);
+  }, [selectedAppointment]);
+
   return (
     <div className="space-y-4">
       <div className="grid gap-2">
@@ -105,7 +129,7 @@ export function ScheduleDayView({
                       setSelectedAppointmentId(null);
                     }}
                   >
-                    + Agendar neste horário
+                    + Agendar neste horario
                   </button>
                 ) : (
                   <div className="flex items-center justify-between rounded-md border px-2 py-1">
@@ -287,9 +311,9 @@ export function ScheduleDayView({
                         >
                           <option value="">Forma de pagamento</option>
                           <option value="cash">Dinheiro</option>
-                          <option value="card">Cartão</option>
+                          <option value="card">Cartao</option>
                           <option value="pix">Pix</option>
-                          <option value="transfer">Transferência</option>
+                          <option value="transfer">Transferencia</option>
                         </select>
                         <form action={updateAppointmentStatusAction}>
                           <input type="hidden" name="appointment_id" value={selectedAppointment.id} />
@@ -305,9 +329,28 @@ export function ScheduleDayView({
                           <input type="hidden" name="status" value={selectedAppointment.status} />
                           <input type="hidden" name="payment_status" value="unpaid" />
                           <Button type="submit" size="sm" variant="outline">
-                            Não pago
+                            Nao pago
                           </Button>
                         </form>
+                      </div>
+
+                      <div className="rounded-lg border border-dashed border-border p-3">
+                        <p className="text-xs font-medium">Reagendamento rapido</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {quickRescheduleOptions.map((option) => (
+                            <form key={option.label} action={rescheduleAppointmentAction}>
+                              <input type="hidden" name="appointment_id" value={selectedAppointment.id} />
+                              <input type="hidden" name="starts_at" value={option.startsAt} />
+                              <input type="hidden" name="ends_at" value={option.endsAt} />
+                              <Button type="submit" size="sm" variant="outline">
+                                {option.label}
+                              </Button>
+                            </form>
+                          ))}
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Mantem a duracao original e valida conflito de horario antes de salvar.
+                        </p>
                       </div>
                     </div>
                   </div>

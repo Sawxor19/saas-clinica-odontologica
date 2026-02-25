@@ -46,10 +46,13 @@ export async function sendAutomaticReminders() {
   for (const appointment of upcoming) {
     const patient = patientMap.get(appointment.patient_id);
     if (!patient?.phone) continue;
-    const message = `Olá ${patient.full_name}, lembramos sua consulta em ${formatDateTimeInZone(
-      new Date(appointment.starts_at),
-      timeZone
-    )}.`;
+
+    const scheduledAt = formatDateTimeInZone(new Date(appointment.starts_at), timeZone);
+    const message =
+      appointment.status === "confirmed"
+        ? `Ola ${patient.full_name}, sua consulta confirmada esta marcada para ${scheduledAt}.`
+        : `Ola ${patient.full_name}, sua consulta esta agendada para ${scheduledAt}. Responda SIM para confirmar ou NAO para reagendar.`;
+
     if (clinic?.whatsapp_number) {
       try {
         await sendWhatsAppMessage({ to: patient.phone, from: clinic.whatsapp_number, body: message });
@@ -58,6 +61,7 @@ export async function sendAutomaticReminders() {
         results.push({ id: appointment.id, type: "reminder", channel: "whatsapp", success: false });
       }
     }
+
     try {
       await sendSmsMessage({ to: patient.phone, body: message });
       results.push({ id: appointment.id, type: "reminder", channel: "sms", success: true });
@@ -69,7 +73,9 @@ export async function sendAutomaticReminders() {
   for (const appointment of completed) {
     const patient = patientMap.get(appointment.patient_id);
     if (!patient?.phone) continue;
-    const message = `Olá ${patient.full_name}, esperamos que tenha ficado satisfeito(a) com sua consulta. Precisa de algo?`;
+
+    const message = `Ola ${patient.full_name}, esperamos que tenha ficado satisfeito(a) com sua consulta. Precisa de algo?`;
+
     if (clinic?.whatsapp_number) {
       try {
         await sendWhatsAppMessage({ to: patient.phone, from: clinic.whatsapp_number, body: message });
@@ -78,6 +84,7 @@ export async function sendAutomaticReminders() {
         results.push({ id: appointment.id, type: "follow_up", channel: "whatsapp", success: false });
       }
     }
+
     try {
       await sendSmsMessage({ to: patient.phone, body: message });
       results.push({ id: appointment.id, type: "follow_up", channel: "sms", success: true });
