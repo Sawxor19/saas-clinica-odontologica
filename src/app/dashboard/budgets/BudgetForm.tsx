@@ -22,6 +22,14 @@ type ItemRow = {
   unit_price: string;
 };
 
+function createEmptyRow(): ItemRow {
+  return {
+    procedure_id: "",
+    quantity: "1",
+    unit_price: "",
+  };
+}
+
 function toNumber(value: string) {
   const normalized = value.replace(",", ".").trim();
   const parsed = Number(normalized);
@@ -39,14 +47,17 @@ export function BudgetForm({
   patients: PatientOption[];
   procedures: ProcedureOption[];
 }) {
-  const [rows, setRows] = useState<ItemRow[]>([
-    {
-      procedure_id: "",
-      quantity: "1",
-      unit_price: "",
-    },
-  ]);
+  const [patientId, setPatientId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [rows, setRows] = useState<ItemRow[]>([createEmptyRow()]);
   const [discount, setDiscount] = useState("0");
+
+  const resetFormValues = () => {
+    setPatientId("");
+    setNotes("");
+    setDiscount("0");
+    setRows([createEmptyRow()]);
+  };
 
   const procedureMap = useMemo(
     () => new Map(procedures.map((procedure) => [procedure.id, Number(procedure.price || 0)])),
@@ -74,6 +85,8 @@ export function BudgetForm({
           </label>
           <select
             name="patient_id"
+            value={patientId}
+            onChange={(event) => setPatientId(event.target.value)}
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 shadow-inner transition-colors focus:border-primary focus:bg-white focus:outline-none"
             required
           >
@@ -110,6 +123,8 @@ export function BudgetForm({
 
       <textarea
         name="notes"
+        value={notes}
+        onChange={(event) => setNotes(event.target.value)}
         className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-inner placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none"
         placeholder="Observacoes do orcamento"
       />
@@ -216,24 +231,25 @@ export function BudgetForm({
       </div>
 
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-4 py-3 md:grid-cols-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="justify-self-start rounded-xl border-slate-300 bg-white"
-          onClick={() =>
-            setRows((previous) => [
-              ...previous,
-              {
-                procedure_id: "",
-                quantity: "1",
-                unit_price: "",
-              },
-            ])
-          }
-        >
-          <Plus className="mr-1.5 h-4 w-4" />
-          Adicionar item
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="justify-self-start rounded-xl border-slate-300 bg-white"
+            onClick={() => setRows((previous) => [...previous, createEmptyRow()])}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar item
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+            onClick={resetFormValues}
+          >
+            Limpar / zerar
+          </Button>
+        </div>
 
         <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-3 md:text-right">
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">

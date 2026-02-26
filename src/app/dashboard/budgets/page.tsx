@@ -63,6 +63,7 @@ export default async function BudgetsPage() {
   const procedures = [...proceduresRaw].sort((a, b) =>
     String(a.name ?? "").localeCompare(String(b.name ?? ""), "pt-BR")
   );
+  const budgetFormResetKey = budgets[0]?.id ?? "empty-budget-form";
   const summary = budgets.reduce(
     (acc, budget) => {
       acc.total += 1;
@@ -134,7 +135,11 @@ export default async function BudgetsPage() {
         </CardHeader>
         <CardContent>
           <form action={createBudgetAction} className="space-y-4">
-            <BudgetForm patients={patients} procedures={procedures} />
+            <BudgetForm
+              key={budgetFormResetKey}
+              patients={patients}
+              procedures={procedures}
+            />
             <div className="flex justify-end">
               <Button type="submit">Salvar orcamento</Button>
             </div>
