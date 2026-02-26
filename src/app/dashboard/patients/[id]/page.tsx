@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { getClinicContext } from "@/server/auth/context";
 import {
   addAttachmentAction,
+  deleteClinicalDocumentAction,
   deleteAttachmentAction,
   issueClinicalDocumentAction,
   updatePatientPhotoAction,
@@ -368,6 +369,19 @@ export default async function PatientDetailsPage({
                         Abrir PDF
                       </a>
                     ) : null}
+                    {permissions.writePrescriptions ? (
+                      <ConfirmForm
+                        action={deleteClinicalDocumentAction}
+                        message="Remover este documento clinico?"
+                        className="mt-2"
+                      >
+                        <input type="hidden" name="patient_id" value={patient.id} />
+                        <input type="hidden" name="document_id" value={item.id} />
+                        <Button size="sm" variant="outline" className="text-destructive" type="submit">
+                          Remover documento
+                        </Button>
+                      </ConfirmForm>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -534,11 +548,15 @@ export default async function PatientDetailsPage({
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary"
+                        className="mt-2 inline-flex h-9 items-center justify-center rounded-2xl border border-border bg-white px-3 text-sm text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted"
                       >
                         Abrir arquivo
                       </a>
-                    ) : null}
+                    ) : (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Link indisponivel no momento. Atualize a pagina para gerar novo acesso.
+                      </div>
+                    )}
                     {permissions.writeClinicalNotes ? (
                       <ConfirmForm
                         action={deleteAttachmentAction}

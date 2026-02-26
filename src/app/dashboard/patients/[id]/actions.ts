@@ -5,7 +5,7 @@ import { addClinicalNote } from "@/server/services/clinicalNotes";
 import { addAttachment, removeAttachment } from "@/server/services/attachments";
 import { saveOdontogram } from "@/server/services/odontograms";
 import { updatePatientPhotoItem } from "@/server/services/patients";
-import { issueClinicalDocument } from "@/server/services/prescriptions";
+import { issueClinicalDocument, removeClinicalDocument } from "@/server/services/prescriptions";
 
 export async function addClinicalNoteAction(formData: FormData) {
   const patientId = String(formData.get("patient_id") || "");
@@ -67,6 +67,19 @@ export async function issueClinicalDocumentAction(formData: FormData) {
     type: String(formData.get("document_type") || "prescription"),
     title: String(formData.get("title") || ""),
     content: String(formData.get("content") || ""),
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function deleteClinicalDocumentAction(formData: FormData) {
+  const patientId = String(formData.get("patient_id") || "");
+  const documentId = String(formData.get("document_id") || "");
+  if (!patientId || !documentId) return;
+
+  await removeClinicalDocument({
+    patient_id: patientId,
+    document_id: documentId,
   });
 
   revalidatePath(`/dashboard/patients/${patientId}`);

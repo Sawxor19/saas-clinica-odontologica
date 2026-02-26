@@ -12,7 +12,7 @@ export class SupabaseStorageProvider implements StorageProvider {
     if (error) {
       throw new Error(error.message);
     }
-    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60);
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
     return { path, url: data?.signedUrl ?? null };
   }
 
@@ -20,7 +20,7 @@ export class SupabaseStorageProvider implements StorageProvider {
     const supabase = await supabaseServerClient();
     const { data, error } = await supabase.storage
       .from(BUCKET)
-      .createSignedUrl(path, 60);
+      .createSignedUrl(path, 60 * 60);
     if (error) {
       return null;
     }
