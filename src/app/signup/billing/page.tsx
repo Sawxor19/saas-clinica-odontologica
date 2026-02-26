@@ -3,11 +3,7 @@ import SignupBillingClient from "./SignupBillingClient";
 
 export default function SignupBillingPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
-      }
-    >
+    <Suspense fallback={null}>
       <SignupBillingClient />
     </Suspense>
   );

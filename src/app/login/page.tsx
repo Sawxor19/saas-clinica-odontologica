@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { loginAction } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LoginSubmitButton } from "@/app/login/LoginSubmitButton";
 
 export default function LoginPage() {
   return (
@@ -25,9 +25,7 @@ export default function LoginPage() {
           <form className="space-y-4" action={loginAction}>
             <Input name="email" type="email" placeholder="Email" required />
             <Input name="password" type="password" placeholder="Senha" required />
-            <Button className="w-full" type="submit">
-              Acessar
-            </Button>
+            <LoginSubmitButton />
           </form>
           <div className="mt-3 text-center">
             <a className="text-sm text-muted-foreground hover:text-foreground" href="/forgot-password">
