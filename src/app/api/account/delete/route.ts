@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { removeStorageFiles } from "@/server/storage/cleanup";
 import { stripe } from "@/server/billing/stripe";
 import { logger } from "@/lib/logger";
 
@@ -203,6 +204,55 @@ export async function POST(request: Request) {
     .is("user_id", null);
   if (recycleByEmailError) {
     return NextResponse.json({ error: recycleByEmailError.message }, { status: 500 });
+  }
+
+  const [attachmentsResult, patientsResult, anamnesesResult] = await Promise.all([
+    admin
+      .from("attachments")
+      .select("file_path")
+      .eq("clinic_id", clinicId),
+    admin
+      .from("patients")
+      .select("photo_path, signature_path")
+      .eq("clinic_id", clinicId),
+    admin
+      .from("anamnesis_responses")
+      .select("signature_url")
+      .eq("clinic_id", clinicId),
+  ]);
+
+  if (attachmentsResult.error) {
+    return NextResponse.json({ error: attachmentsResult.error.message }, { status: 500 });
+  }
+  if (patientsResult.error) {
+    return NextResponse.json({ error: patientsResult.error.message }, { status: 500 });
+  }
+  if (anamnesesResult.error) {
+    return NextResponse.json({ error: anamnesesResult.error.message }, { status: 500 });
+  }
+
+  const attachmentPaths = (attachmentsResult.data ?? []).map((item) =>
+    String(item.file_path ?? "")
+  );
+  const patientPaths = (patientsResult.data ?? []).flatMap((item) => [
+    item.photo_path ? String(item.photo_path) : "",
+    item.signature_path ? String(item.signature_path) : "",
+  ]);
+  const anamnesisSignaturePaths = (anamnesesResult.data ?? []).map((item) =>
+    String(item.signature_url ?? "")
+  );
+
+  try {
+    await removeStorageFiles([
+      ...attachmentPaths,
+      ...patientPaths,
+      ...anamnesisSignaturePaths,
+    ]);
+  } catch (error) {
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 }
+    );
   }
 
   const { error: clinicDeleteError } = await admin.from("clinics").delete().eq("id", clinicId);

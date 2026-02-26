@@ -8,6 +8,7 @@ import {
   AnamnesisRepository,
 } from "@/server/repositories/anamneses";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { removeStorageFiles } from "@/server/storage/cleanup";
 
 const SIGNATURE_BUCKET = "clinic-attachments";
 
@@ -256,6 +257,19 @@ export class AnamnesisService {
   async deleteForm(formId: string) {
     const { clinicId, permissions } = await getClinicContext();
     assertPermission(permissions, "readPatients");
+    const admin = supabaseAdmin();
+    const { data, error } = await admin
+      .from("anamnesis_responses")
+      .select("signature_url")
+      .eq("clinic_id", clinicId)
+      .eq("form_id", formId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const signaturePaths = (data ?? []).map((item) => String(item.signature_url ?? ""));
+    await removeStorageFiles(signaturePaths);
     await this.repository.deleteForm(formId, clinicId);
   }
 

@@ -7,6 +7,7 @@ import { createAttachment } from "@/server/repositories/attachments";
 import { getClinicById } from "@/server/repositories/clinics";
 import { listPatientsByIds } from "@/server/repositories/patients";
 import { listProceduresByIds } from "@/server/repositories/procedures";
+import { removeStorageFiles } from "@/server/storage/cleanup";
 import {
   BudgetItemInput,
   BudgetStatus,
@@ -472,6 +473,44 @@ async function storeContractAttachment(input: {
   };
 }
 
+async function removeBudgetContracts(input: {
+  clinicId: string;
+  patientId: string;
+  budgetId: string;
+}) {
+  const prefix = buildBudgetContractPrefix(input.budgetId);
+  const admin = supabaseAdmin();
+  const { data, error } = await admin
+    .from("attachments")
+    .select("id, file_path, file_name")
+    .eq("clinic_id", input.clinicId)
+    .eq("patient_id", input.patientId)
+    .eq("category", "contract")
+    .like("file_name", `${prefix}%`);
+
+  if (error) {
+    throw new Error(`Falha ao buscar contratos para exclusao: ${error.message}`);
+  }
+
+  const items = data ?? [];
+  const paths = items.map((item) => String(item.file_path ?? ""));
+  await removeStorageFiles(paths);
+
+  if (items.length > 0) {
+    const ids = items.map((item) => String(item.id ?? "")).filter(Boolean);
+    if (ids.length > 0) {
+      const { error: deleteError } = await admin
+        .from("attachments")
+        .delete()
+        .eq("clinic_id", input.clinicId)
+        .in("id", ids);
+      if (deleteError) {
+        throw new Error(`Falha ao remover anexos de contrato: ${deleteError.message}`);
+      }
+    }
+  }
+}
+
 export async function getBudgets() {
   const { clinicId, permissions, userId } = await getClinicContext();
   assertPermission(permissions, "writeBudgets");
@@ -571,6 +610,15 @@ export async function setBudgetStatus(budgetId: string, status: string) {
 export async function removeBudget(budgetId: string) {
   const { clinicId, permissions, userId } = await getClinicContext();
   assertPermission(permissions, "writeBudgets");
+  const budget = await getBudgetById(clinicId, budgetId);
+  if (!budget) {
+    throw new Error("Orcamento nao encontrado.");
+  }
+  await removeBudgetContracts({
+    clinicId,
+    patientId: budget.patient_id,
+    budgetId,
+  });
   await deleteBudget(clinicId, budgetId);
   await auditLog({
     clinicId,

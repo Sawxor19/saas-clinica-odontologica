@@ -4,13 +4,15 @@ import { assertPermission } from "@/server/rbac/guard";
 import {
   createPatient,
   getPatientById,
+  hardDeletePatient,
   listPatients,
-  softDeletePatient,
   updatePatient,
   updatePatientPhoto,
 } from "@/server/repositories/patients";
 import { listAppointmentsByPatient } from "@/server/repositories/appointments";
 import { auditLog } from "@/server/audit/auditLog";
+import { supabaseAdmin } from "@/server/db/supabaseAdmin";
+import { removeStorageFiles } from "@/server/storage/cleanup";
 
 export async function getPatients(query?: string) {
   const { clinicId, permissions, userId } = await getClinicContext();
@@ -44,7 +46,46 @@ export async function addPatient(input: PatientInput) {
 export async function removePatient(patientId: string) {
   const { clinicId, permissions, userId } = await getClinicContext();
   assertPermission(permissions, "writePatients");
-  await softDeletePatient(clinicId, patientId);
+
+  const admin = supabaseAdmin();
+  const [attachmentsResult, patientResult, signaturesResult] = await Promise.all([
+    admin
+      .from("attachments")
+      .select("file_path")
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("patients")
+      .select("photo_path, signature_path")
+      .eq("clinic_id", clinicId)
+      .eq("id", patientId)
+      .maybeSingle(),
+    admin
+      .from("anamnesis_responses")
+      .select("signature_url")
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+  ]);
+
+  if (attachmentsResult.error) throw new Error(attachmentsResult.error.message);
+  if (patientResult.error) throw new Error(patientResult.error.message);
+  if (signaturesResult.error) throw new Error(signaturesResult.error.message);
+
+  const attachmentPaths = (attachmentsResult.data ?? []).map((item) =>
+    String(item.file_path ?? "")
+  );
+  const anamnesisSignaturePaths = (signaturesResult.data ?? []).map((item) =>
+    String(item.signature_url ?? "")
+  );
+
+  await removeStorageFiles([
+    ...attachmentPaths,
+    ...anamnesisSignaturePaths,
+    patientResult.data?.photo_path ? String(patientResult.data.photo_path) : null,
+    patientResult.data?.signature_path ? String(patientResult.data.signature_path) : null,
+  ]);
+
+  await hardDeletePatient(clinicId, patientId);
   await auditLog({
     clinicId,
     userId,

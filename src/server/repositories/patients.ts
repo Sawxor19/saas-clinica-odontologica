@@ -92,6 +92,18 @@ export async function softDeletePatient(clinicId: string, patientId: string) {
   }
 }
 
+export async function hardDeletePatient(clinicId: string, patientId: string) {
+  const supabase = await supabaseServerClient();
+  const { error } = await supabase
+    .from("patients")
+    .delete()
+    .eq("id", patientId)
+    .eq("clinic_id", clinicId);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function updatePatient(
   clinicId: string,
   patientId: string,
