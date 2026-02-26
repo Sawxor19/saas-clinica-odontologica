@@ -68,29 +68,44 @@ export function BudgetForm({
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-[2fr,1fr]">
-        <select
-          name="patient_id"
-          className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 shadow-inner transition-colors focus:border-primary focus:bg-white focus:outline-none"
-          required
-        >
-          <option value="">Paciente</option>
-          {patients.map((patient) => (
-            <option key={patient.id} value={patient.id}>
-              {patient.full_name}
-            </option>
-          ))}
-        </select>
-        <Input
-          name="discount"
-          type="number"
-          min="0"
-          max="100"
-          step="0.01"
-          value={discount}
-          onChange={(event) => setDiscount(event.target.value)}
-          placeholder="Desconto (%)"
-          className="border-slate-200 bg-slate-50 text-slate-700 shadow-inner transition-colors focus:border-primary focus:bg-white"
-        />
+        <div className="space-y-1">
+          <label className="text-xs font-semibold uppercase tracking-[0.07em] text-slate-500">
+            Paciente do orcamento
+          </label>
+          <select
+            name="patient_id"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 shadow-inner transition-colors focus:border-primary focus:bg-white focus:outline-none"
+            required
+          >
+            <option value="">Paciente</option>
+            {patients.map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label
+            htmlFor="budget-discount"
+            className="text-xs font-semibold uppercase tracking-[0.07em] text-slate-500"
+          >
+            Caixa de desconto (%)
+          </label>
+          <Input
+            id="budget-discount"
+            name="discount"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={discount}
+            onChange={(event) => setDiscount(event.target.value)}
+            placeholder="Informe o desconto em porcentagem"
+            className="border-slate-200 bg-slate-50 text-slate-700 shadow-inner transition-colors focus:border-primary focus:bg-white"
+          />
+          <p className="text-[11px] text-slate-500">Use 0 para orcamento sem desconto.</p>
+        </div>
       </div>
 
       <textarea

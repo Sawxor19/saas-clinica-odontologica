@@ -203,7 +203,7 @@ export default async function BudgetsPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
                   <div className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                     <Receipt className="h-3.5 w-3.5" />
                     Itens do tratamento
@@ -213,38 +213,61 @@ export default async function BudgetsPage() {
                       Sem itens no orcamento.
                     </div>
                   ) : (
-                    budget.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2"
-                      >
-                        <span className="font-medium text-slate-700">{item.procedure_name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500">
-                            {item.quantity} x R$ {formatCurrency(item.unit_price)}
-                          </span>
-                          <span className="rounded-lg bg-slate-100 px-2 py-1 font-medium text-slate-700">
-                            Total R$ {formatCurrency(item.quantity * item.unit_price)}
-                          </span>
-                          <ConfirmForm
-                            action={deleteBudgetItemAction}
-                            message="Remover este item do orcamento?"
-                          >
-                            <input type="hidden" name="budget_id" value={budget.id} />
-                            <input type="hidden" name="item_id" value={item.id} />
-                            <Button
-                              type="submit"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 rounded-xl border-rose-200 px-2 text-[11px] text-rose-700 hover:bg-rose-50"
-                            >
-                              <Trash2 className="mr-1 h-3.5 w-3.5" />
-                              Remover
-                            </Button>
-                          </ConfirmForm>
-                        </div>
-                      </div>
-                    ))
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-slate-100/90 text-slate-500">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold uppercase tracking-[0.07em]">
+                              Procedimento
+                            </th>
+                            <th className="px-3 py-2 text-center font-semibold uppercase tracking-[0.07em]">
+                              Qtd. vendida
+                            </th>
+                            <th className="px-3 py-2 text-right font-semibold uppercase tracking-[0.07em]">
+                              Valor unit.
+                            </th>
+                            <th className="px-3 py-2 text-right font-semibold uppercase tracking-[0.07em]">
+                              Valor total
+                            </th>
+                            <th className="px-3 py-2 text-right font-semibold uppercase tracking-[0.07em]">
+                              Acao
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {budget.items.map((item) => (
+                            <tr key={item.id} className="bg-white transition-colors hover:bg-slate-50/80">
+                              <td className="px-3 py-2 font-medium text-slate-700">{item.procedure_name}</td>
+                              <td className="px-3 py-2 text-center text-slate-600">{item.quantity}</td>
+                              <td className="px-3 py-2 text-right text-slate-600">
+                                R$ {formatCurrency(item.unit_price)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-medium text-slate-700">
+                                R$ {formatCurrency(item.quantity * item.unit_price)}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <ConfirmForm
+                                  action={deleteBudgetItemAction}
+                                  message="Remover este item do orcamento?"
+                                >
+                                  <input type="hidden" name="budget_id" value={budget.id} />
+                                  <input type="hidden" name="item_id" value={item.id} />
+                                  <Button
+                                    type="submit"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 rounded-xl border-rose-200 px-2 text-[11px] text-rose-700 hover:bg-rose-50"
+                                  >
+                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                    Remover
+                                  </Button>
+                                </ConfirmForm>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
 
