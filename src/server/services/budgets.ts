@@ -179,54 +179,338 @@ async function buildBudgetContractPdf(input: {
   items: Array<{ procedure_name: string; quantity: number; unit_price: number }>;
   discount: number;
 }) {
-  const doc = new PDFDocument({ margin: 40 });
+  const doc = new PDFDocument({ margin: 44, size: "A4" });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   const totals = calculateTotals(input.items, input.discount);
-  const issueDate = new Date().toLocaleString("pt-BR");
+  const issueDate = new Date();
+  const issueDateLabel = issueDate.toLocaleString("pt-BR");
+  const validityDate = new Date(issueDate);
+  validityDate.setDate(validityDate.getDate() + 30);
+  const validityDateLabel = validityDate.toLocaleDateString("pt-BR");
+  const contractCode = `ORC-${input.budgetId.slice(0, 8).toUpperCase()}`;
 
-  doc.fontSize(16).text("Contrato de tratamento odontologico");
-  doc.moveDown(0.5);
-  doc.fontSize(10).text(`Clinica: ${input.clinicName}`);
-  doc.fontSize(10).text(`Paciente: ${input.patientName}`);
-  doc.fontSize(10).text(`Orcamento: ${input.budgetId}`);
-  doc.fontSize(10).text(`Data de emissao: ${issueDate}`);
+  const colors = {
+    primary: "#0F3D66",
+    primaryStrong: "#0B2E4F",
+    primarySoft: "#EAF2FB",
+    surface: "#F8FAFC",
+    text: "#1F2937",
+    muted: "#64748B",
+    border: "#D7E2EE",
+    borderStrong: "#BFCFDF",
+    white: "#FFFFFF",
+    success: "#0F766E",
+  };
 
-  doc.moveDown();
-  doc.fontSize(12).text("Itens do tratamento");
-  doc.moveDown(0.5);
+  const left = doc.page.margins.left;
+  const right = doc.page.width - doc.page.margins.right;
+  const contentWidth = right - left;
+  const bottomLimit = () => doc.page.height - doc.page.margins.bottom;
+  let y = doc.page.margins.top;
 
-  if (input.items.length === 0) {
-    doc.fontSize(10).text("Sem itens no orcamento.");
-  } else {
-    input.items.forEach((item, index) => {
-      const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
-      doc
-        .fontSize(10)
-        .text(
-          `${index + 1}. ${item.procedure_name} | Qtd: ${item.quantity} | Unit: R$ ${formatCurrency(item.unit_price)} | Total: R$ ${formatCurrency(lineTotal)}`
-        );
+  const drawBox = (
+    x: number,
+    top: number,
+    width: number,
+    height: number,
+    fill: string,
+    stroke: string,
+    radius = 0
+  ) => {
+    doc.save();
+    doc.fillColor(fill);
+    if (radius > 0) {
+      doc.roundedRect(x, top, width, height, radius).fill();
+    } else {
+      doc.rect(x, top, width, height).fill();
+    }
+    doc.restore();
+
+    doc.save();
+    doc.strokeColor(stroke).lineWidth(1);
+    if (radius > 0) {
+      doc.roundedRect(x, top, width, height, radius).stroke();
+    } else {
+      doc.rect(x, top, width, height).stroke();
+    }
+    doc.restore();
+  };
+
+  const ensureSpace = (height: number, onNewPage?: () => void) => {
+    if (y + height <= bottomLimit()) return;
+    doc.addPage();
+    y = doc.page.margins.top;
+    if (onNewPage) onNewPage();
+  };
+
+  const drawPageContinuationHeader = (title: string) => {
+    drawBox(left, y, contentWidth, 30, colors.surface, colors.border, 8);
+    doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(10).text(title, left + 12, y + 10, {
+      width: contentWidth - 24,
     });
-  }
+    y += 42;
+  };
 
-  doc.moveDown();
-  doc.fontSize(10).text(`Subtotal: R$ ${formatCurrency(totals.subtotal)}`);
-  doc.fontSize(10).text(`Desconto: ${Number(input.discount || 0).toFixed(2)}%`);
-  doc.fontSize(10).text(`Total final: R$ ${formatCurrency(totals.total)}`);
+  const drawInfoCard = (
+    x: number,
+    top: number,
+    width: number,
+    height: number,
+    label: string,
+    value: string
+  ) => {
+    drawBox(x, top, width, height, colors.surface, colors.border, 10);
+    doc.fillColor(colors.muted).font("Helvetica-Bold").fontSize(8).text(label, x + 12, top + 9, {
+      width: width - 24,
+    });
+    doc.fillColor(colors.text).font("Helvetica").fontSize(10.5).text(value || "-", x + 12, top + 24, {
+      width: width - 24,
+      height: height - 28,
+    });
+  };
+
+  const drawSectionHeading = (title: string, subtitle?: string) => {
+    ensureSpace(subtitle ? 28 : 20);
+    doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(12).text(title, left, y, {
+      width: contentWidth,
+    });
+    if (subtitle) {
+      doc.fillColor(colors.muted).font("Helvetica").fontSize(9).text(subtitle, left, y + 14, {
+        width: contentWidth,
+      });
+      y += 30;
+      return;
+    }
+    y += 20;
+  };
+
+  drawBox(0, 0, doc.page.width, 124, colors.primary, colors.primary, 0);
+  drawBox(0, 104, doc.page.width, 20, colors.primaryStrong, colors.primaryStrong, 0);
+  doc.fillColor(colors.white).font("Helvetica-Bold").fontSize(20).text(
+    "CONTRATO DE TRATAMENTO ODONTOLOGICO",
+    left,
+    36,
+    { width: contentWidth }
+  );
+  doc.fillColor("#D6E6F7").font("Helvetica").fontSize(10).text(
+    "Instrumento particular para formalizacao do plano de tratamento e condicoes comerciais.",
+    left,
+    66,
+    { width: contentWidth }
+  );
+  doc.fillColor(colors.white).font("Helvetica-Bold").fontSize(9).text(
+    `Codigo: ${contractCode}`,
+    left,
+    91,
+    { width: contentWidth / 2 }
+  );
+  doc.fillColor("#D6E6F7").font("Helvetica").fontSize(9).text(`Emissao: ${issueDateLabel}`, left, 91, {
+    width: contentWidth,
+    align: "right",
+  });
+
+  y = 138;
+  const cardGap = 12;
+  const cardWidth = (contentWidth - cardGap) / 2;
+  const cardHeight = 60;
+  drawInfoCard(left, y, cardWidth, cardHeight, "DADOS DA CLINICA", input.clinicName || "Clinica");
+  drawInfoCard(left + cardWidth + cardGap, y, cardWidth, cardHeight, "PACIENTE", input.patientName || "Paciente");
+  y += cardHeight + 10;
+  drawInfoCard(left, y, cardWidth, cardHeight, "IDENTIFICACAO DO ORCAMENTO", contractCode);
+  drawInfoCard(
+    left + cardWidth + cardGap,
+    y,
+    cardWidth,
+    cardHeight,
+    "VALIDADE DA PROPOSTA",
+    `${validityDateLabel} (30 dias)`
+  );
+  y += cardHeight + 18;
+
+  drawSectionHeading("Plano de procedimentos", "Itens aprovados para execucao clinica e valores por procedimento.");
+  const tableX = left;
+  const tableWidth = contentWidth;
+  const headerHeight = 24;
+  const colWidths = [
+    tableWidth * 0.5,
+    tableWidth * 0.12,
+    tableWidth * 0.18,
+    tableWidth * 0.2,
+  ];
+
+  const drawTableHeader = () => {
+    drawBox(tableX, y, tableWidth, headerHeight, colors.primaryStrong, colors.primaryStrong, 6);
+    doc.fillColor(colors.white).font("Helvetica-Bold").fontSize(9);
+    doc.text("Procedimento", tableX + 10, y + 7, { width: colWidths[0] - 16 });
+    doc.text("Qtd", tableX + colWidths[0], y + 7, { width: colWidths[1], align: "center" });
+    doc.text("Valor unit.", tableX + colWidths[0] + colWidths[1], y + 7, {
+      width: colWidths[2] - 10,
+      align: "right",
+    });
+    doc.text("Total", tableX + colWidths[0] + colWidths[1] + colWidths[2], y + 7, {
+      width: colWidths[3] - 10,
+      align: "right",
+    });
+    y += headerHeight;
+  };
+
+  ensureSpace(headerHeight + 24, () => drawPageContinuationHeader("Contrato - continuidade"));
+  drawTableHeader();
+
+  input.items.forEach((item, index) => {
+    const rowTitle = `${index + 1}. ${item.procedure_name}`;
+    const titleHeight = doc.heightOfString(rowTitle, {
+      width: colWidths[0] - 16,
+      align: "left",
+    });
+    const rowHeight = Math.max(24, titleHeight + 10);
+
+    ensureSpace(rowHeight + 2, () => {
+      drawPageContinuationHeader("Plano de procedimentos - continuidade");
+      drawTableHeader();
+    });
+
+    const rowFill = index % 2 === 0 ? colors.white : colors.surface;
+    drawBox(tableX, y, tableWidth, rowHeight, rowFill, colors.border, 0);
+    const c1 = tableX + colWidths[0];
+    const c2 = c1 + colWidths[1];
+    const c3 = c2 + colWidths[2];
+    doc.save();
+    doc.strokeColor(colors.borderStrong).lineWidth(0.6);
+    doc.moveTo(c1, y).lineTo(c1, y + rowHeight).stroke();
+    doc.moveTo(c2, y).lineTo(c2, y + rowHeight).stroke();
+    doc.moveTo(c3, y).lineTo(c3, y + rowHeight).stroke();
+    doc.restore();
+
+    const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
+    doc.fillColor(colors.text).font("Helvetica").fontSize(9).text(rowTitle, tableX + 8, y + 6, {
+      width: colWidths[0] - 16,
+    });
+    doc.fillColor(colors.text).font("Helvetica").fontSize(9).text(String(item.quantity), c1, y + 6, {
+      width: colWidths[1],
+      align: "center",
+    });
+    doc.fillColor(colors.text).font("Helvetica").fontSize(9).text(`R$ ${formatCurrency(item.unit_price)}`, c2 + 4, y + 6, {
+      width: colWidths[2] - 10,
+      align: "right",
+    });
+    doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(9).text(`R$ ${formatCurrency(lineTotal)}`, c3 + 4, y + 6, {
+      width: colWidths[3] - 10,
+      align: "right",
+    });
+    y += rowHeight;
+  });
+
+  y += 12;
+  const summaryWidth = 250;
+  const summaryHeight = 88;
+  ensureSpace(summaryHeight + 10, () => drawPageContinuationHeader("Resumo financeiro"));
+  const summaryX = right - summaryWidth;
+  drawBox(summaryX, y, summaryWidth, summaryHeight, colors.primarySoft, colors.borderStrong, 10);
+  doc.fillColor(colors.muted).font("Helvetica-Bold").fontSize(8).text("RESUMO FINANCEIRO", summaryX + 12, y + 9, {
+    width: summaryWidth - 24,
+  });
+  doc.fillColor(colors.text).font("Helvetica").fontSize(9).text("Subtotal", summaryX + 12, y + 28, {
+    width: summaryWidth - 24,
+  });
+  doc.text(`R$ ${formatCurrency(totals.subtotal)}`, summaryX + 12, y + 28, {
+    width: summaryWidth - 24,
+    align: "right",
+  });
+  doc.fillColor(colors.text).font("Helvetica").fontSize(9).text(
+    `Desconto (${Number(input.discount || 0).toFixed(2)}%)`,
+    summaryX + 12,
+    y + 44,
+    { width: summaryWidth - 24 }
+  );
+  doc.text(`- R$ ${formatCurrency(totals.discount_amount)}`, summaryX + 12, y + 44, {
+    width: summaryWidth - 24,
+    align: "right",
+  });
+  doc.fillColor(colors.success).font("Helvetica-Bold").fontSize(10).text("Total final", summaryX + 12, y + 62, {
+    width: summaryWidth - 24,
+  });
+  doc.text(`R$ ${formatCurrency(totals.total)}`, summaryX + 12, y + 62, {
+    width: summaryWidth - 24,
+    align: "right",
+  });
+  y += summaryHeight + 14;
 
   if (input.notes) {
-    doc.moveDown();
-    doc.fontSize(12).text("Observacoes");
-    doc.fontSize(10).text(input.notes);
+    drawSectionHeading("Observacoes adicionais");
+    const notesText = input.notes.trim();
+    const notesHeight = Math.max(
+      52,
+      doc.heightOfString(notesText, {
+        width: contentWidth - 24,
+      }) + 24
+    );
+    ensureSpace(notesHeight + 10, () => drawPageContinuationHeader("Observacoes"));
+    drawBox(left, y, contentWidth, notesHeight, colors.surface, colors.border, 10);
+    doc.fillColor(colors.text).font("Helvetica").fontSize(9.5).text(notesText, left + 12, y + 12, {
+      width: contentWidth - 24,
+    });
+    y += notesHeight + 14;
   }
 
-  doc.moveDown(2);
-  doc.fontSize(10).text("Ao assinar, as partes concordam com o plano de tratamento descrito acima.");
-  doc.moveDown(3);
-  doc.fontSize(10).text("Assinatura do paciente: ________________________________");
-  doc.moveDown(2);
-  doc.fontSize(10).text("Assinatura da clinica: _________________________________");
+  drawSectionHeading("Clausulas contratuais");
+  const clauses = [
+    "1. Objeto: o presente contrato formaliza o plano de tratamento odontologico acima, incluindo escopo, etapas e previsao financeira.",
+    "2. Condicoes financeiras: os valores apresentados neste documento refletem os procedimentos aprovados, podendo existir ajuste somente por acordo entre as partes.",
+    "3. Cancelamento e revisao: qualquer alteracao relevante no plano clinico ou no cronograma deve ser registrada e validada pela clinica e pelo paciente.",
+    "4. Vigencia: esta proposta possui validade de 30 dias a contar da data de emissao, salvo condicao comercial distinta registrada por escrito.",
+  ].join("\n\n");
+  const clausesHeight = Math.max(
+    138,
+    doc.heightOfString(clauses, {
+      width: contentWidth - 24,
+      align: "left",
+    }) + 30
+  );
+  ensureSpace(clausesHeight + 14, () => drawPageContinuationHeader("Clausulas contratuais"));
+  drawBox(left, y, contentWidth, clausesHeight, colors.surface, colors.border, 10);
+  doc.fillColor(colors.text).font("Helvetica").fontSize(9).text(clauses, left + 12, y + 14, {
+    width: contentWidth - 24,
+    align: "left",
+  });
+  y += clausesHeight + 18;
+
+  ensureSpace(110, () => drawPageContinuationHeader("Assinaturas"));
+  drawSectionHeading("Assinaturas e aceite final");
+  const signatureGap = 16;
+  const signatureWidth = (contentWidth - signatureGap) / 2;
+  const signatureY = y + 24;
+  doc.save();
+  doc.strokeColor(colors.borderStrong).lineWidth(1);
+  doc.moveTo(left, signatureY).lineTo(left + signatureWidth, signatureY).stroke();
+  doc.moveTo(left + signatureWidth + signatureGap, signatureY)
+    .lineTo(left + signatureWidth + signatureGap + signatureWidth, signatureY)
+    .stroke();
+  doc.restore();
+  doc.fillColor(colors.text).font("Helvetica").fontSize(9).text("Assinatura do paciente", left, signatureY + 6, {
+    width: signatureWidth,
+    align: "center",
+  });
+  doc.text("Assinatura da clinica", left + signatureWidth + signatureGap, signatureY + 6, {
+    width: signatureWidth,
+    align: "center",
+  });
+  doc.fillColor(colors.muted).font("Helvetica").fontSize(8.5).text(
+    `Local e data: ___________________________    Codigo do documento: ${contractCode}`,
+    left,
+    signatureY + 34,
+    { width: contentWidth }
+  );
+
+  const footerY = doc.page.height - doc.page.margins.bottom + 8;
+  doc.fillColor(colors.muted).font("Helvetica").fontSize(8).text(
+    `Documento digital gerado em ${issueDateLabel}`,
+    left,
+    footerY,
+    { width: contentWidth, align: "center" }
+  );
 
   doc.end();
   await new Promise<void>((resolve) => doc.on("end", () => resolve()));
