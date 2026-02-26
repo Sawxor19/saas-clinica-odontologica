@@ -85,6 +85,60 @@ export async function removePatient(patientId: string) {
     patientResult.data?.signature_path ? String(patientResult.data.signature_path) : null,
   ]);
 
+  const relatedDeletes = [
+    admin
+      .from("patient_intake_links")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("anamnesis_responses")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("attachments")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("prescriptions")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("budgets")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("appointments")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("payments")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("clinical_notes")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+    admin
+      .from("odontograms")
+      .delete()
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId),
+  ] as const;
+
+  const deleteResults = await Promise.all(relatedDeletes);
+  const deleteError = deleteResults.find((result) => result.error)?.error;
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
   await hardDeletePatient(clinicId, patientId);
   await auditLog({
     clinicId,
