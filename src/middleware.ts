@@ -34,10 +34,18 @@ const ROLE_GUARDS: Array<{ prefix: string; permission: keyof ReturnType<typeof c
   { prefix: "/billing", permission: "manageBilling" },
 ];
 
+function matchesPublicPath(pathname: string, path: string) {
+  if (path === "/") {
+    return pathname === "/";
+  }
+
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+  if (PUBLIC_PATHS.some((path) => matchesPublicPath(pathname, path))) {
     return NextResponse.next();
   }
 

@@ -4,7 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LoginSubmitButton } from "@/app/login/LoginSubmitButton";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const errorMessage = resolvedSearchParams?.error;
+
   return (
     <div className="saas-scene-dark flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md border-slate-200/70 bg-white/92 shadow-2xl backdrop-blur">
@@ -22,6 +29,11 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground">Acesse seu painel da clinica</p>
         </CardHeader>
         <CardContent>
+          {errorMessage ? (
+            <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
           <form className="space-y-4" action={loginAction}>
             <Input name="email" type="email" placeholder="Email" required />
             <Input name="password" type="password" placeholder="Senha" required />

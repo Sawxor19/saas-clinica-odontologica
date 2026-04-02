@@ -21,7 +21,11 @@ Sistema multiclínica de gestão odontológica com Supabase, Stripe e Next.js (A
 1. Crie um projeto no Supabase.
 2. Em Authentication, habilite Email/Password.
 3. Crie um bucket chamado `clinic-attachments` (Storage).
-4. Execute as migrations SQL na ordem:
+4. Para projeto novo, execute o bootstrap único:
+```
+sql/000_bootstrap.sql
+```
+5. Os arquivos individuais continuam disponíveis abaixo como referência histórica do que o bootstrap consolida:
 ```
 sql/001_schema.sql
 sql/002_rls.sql

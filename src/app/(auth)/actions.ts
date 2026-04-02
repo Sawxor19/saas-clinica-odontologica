@@ -3,9 +3,6 @@
 import { redirect } from "next/navigation";
 import { supabaseServerClient } from "@/server/db/supabaseServer";
 import { supabaseAdmin } from "@/server/db/supabaseAdmin";
-import { syncSubscriptionByCustomerId } from "@/server/billing/service";
-import { reconcileProvisioningFromCheckoutSessionId } from "@/server/services/provisioning.service";
-import { getAppUrl } from "@/server/config/app-url";
 
 type SignupState = { error?: string };
 type SignupIntentLite = {
@@ -30,10 +27,14 @@ export async function signupAction(_: SignupState, _formData: FormData) {
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  if (!email || !password) {
+    redirect("/login?error=Informe%20email%20e%20senha.");
+  }
+
   const supabase = await supabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    throw new Error(error.message);
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
   const {
@@ -71,6 +72,9 @@ export async function loginAction(formData: FormData) {
 
       if (intent?.checkout_session_id) {
         try {
+          const { reconcileProvisioningFromCheckoutSessionId } = await import(
+            "@/server/services/provisioning.service"
+          );
           await reconcileProvisioningFromCheckoutSessionId(intent.checkout_session_id);
         } catch {
           // Best effort recovery; fallback redirects below.
@@ -104,11 +108,16 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    let { data: clinic } = await supabase
+    const clinicResponse = await supabase
       .from("clinics")
       .select("subscription_status, current_period_end")
       .eq("id", profile.clinic_id)
       .single();
+    let clinic = clinicResponse.data;
+
+    if (clinicResponse.error) {
+      redirect(`/login?error=${encodeURIComponent(clinicResponse.error.message)}`);
+    }
 
     const now = new Date();
     const periodEnd = clinic?.current_period_end
@@ -121,12 +130,16 @@ export async function loginAction(formData: FormData) {
 
     if (!isActive || !notExpired) {
       if (profile.stripe_customer_id) {
+        const { syncSubscriptionByCustomerId } = await import("@/server/billing/service");
         await syncSubscriptionByCustomerId(profile.stripe_customer_id);
         const refreshed = await supabase
           .from("clinics")
           .select("subscription_status, current_period_end")
           .eq("id", profile.clinic_id)
           .single();
+        if (refreshed.error) {
+          redirect(`/login?error=${encodeURIComponent(refreshed.error.message)}`);
+        }
         clinic = refreshed.data ?? clinic;
       }
 
@@ -159,6 +172,7 @@ export async function requestPasswordResetAction(formData: FormData) {
     redirect("/forgot-password?error=Informe%20o%20email.");
   }
 
+  const { getAppUrl } = await import("@/server/config/app-url");
   const redirectTo = `${getAppUrl()}/reset-password`;
   const supabase = await supabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
