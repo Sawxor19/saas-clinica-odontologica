@@ -130,30 +130,3 @@ Pode ser atualizado em `/dashboard/profile`.
 2. Configure as variáveis de ambiente.
 3. Faça o deploy.
 
-## Como vender o produto
-- Posicione como SaaS simples e acessível para clínicas pequenas.
-- Use trial pago com cartão obrigatório para reduzir inadimplência.
-- Mantenha onboarding rápido e suporte humanizado no início.
-
-## Como adicionar um novo módulo
-Checklist:
-- Criar tabela + RLS + policies no SQL
-- Criar repository e service
-- Criar rotas UI
-- Adicionar permissões no RBAC
-- Adicionar testes mínimos
-
-## Sobre o Next.js
-Este projeto usa [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) para otimizar e carregar automaticamente o [Geist](https://vercel.com/font), uma nova família de fontes da Vercel.
-
-## Saiba mais
-Para entender melhor o Next.js, consulte:
-- [Documentação do Next.js](https://nextjs.org/docs) - recursos e API do Next.js.
-- [Learn Next.js](https://nextjs.org/learn) - tutorial interativo de Next.js.
-
-Você também pode visitar o [repositório do Next.js no GitHub](https://github.com/vercel/next.js) — feedbacks e contribuições são bem-vindos.
-
-## Deploy na Vercel
-A forma mais simples de fazer deploy do seu app Next.js é usar a [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme), criada pelos autores do Next.js.
-
-Confira a [documentação de deploy do Next.js](https://nextjs.org/docs/app/building-your-application/deploying) para mais detalhes.
