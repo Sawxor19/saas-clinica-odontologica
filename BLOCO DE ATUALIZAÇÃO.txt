@@ -1,0 +1,69 @@
+Nova atualização 0.1.1
+
+1. Implementei um cadastro rápido com geração de link (sem twilio) com botão de copiar e enviar manualmente via whatsapp.
+2. Criei uma página de cadastro do paciente via link copia/cola
+3. Adicionado assinatura digital com validação obrigatória
+4. Implementação de upload de fotos (opcional)
+5. Atualizei a ficha do paciente para aparecer a assinatura virtual
+6. Ao clicar em "cadastrar", o paciente é enviado a uma página de "Cadastro confirmado com sucesso! Pode fechar a aba!"
+7. Acrescentei a mensagem de sigilo e LGPD na página de cadastro dos pacientes
+8. A atualização foi commitada e efetuado o deploy com sucesso
+
+https://e-clinic-br.vercel.app
+
+=============================================================
+
+Nova atualização 0.1.2
+
+1. Removidas algumas caixas do cadastro dos pacientes
+2. Preços quebrados agora funcionam (somente duas casas após a vírgula)
+3. Redesign completo do sistema, layout claro com barra de navegação lateral mais espaçada, azul clínico, verde saúde e vermelho suave para erros
+4. Dark theme removido
+5. Tipografia redefinida
+6. Agora a caixa de "editar ficha" dá um efeito desfocado na página traseira
+7. Verificação de telefone removida, confirmação apenas por e-mail
+8. Nova tela de confirmação ao criar cadastro de clínica
+9. A atualização foi commitada e efetuado o deploy com sucesso!
+
+https://e-clinic-br.vercel.app
+
+=============================================================
+
+Nova atualização 0.1.3
+
+1. Remodelada a metodologia de criação de usuário (removido a etapa de verificação de telefone, agora só precisa confirmar e-mail)
+2. Corrigido problema do link de confirmação do e-mail
+3. Criado endpoint para resolver IntentID
+4. Corrigido loop da tela /signup/success
+5. Diagnosticado e corrigido o erro do produto "free trial" que podia ser assinado mais de 1x
+6. Implementado "Excluir conta"
+7. Corrigido recriação de conta após exclusão
+8. Validado elegibilidade antes de Auth.SignUp (evita enviar e-mail quando o cadastro falha)
+9. A atualização foi commitada e efetuado o deploy com sucesso, além de novas migrações SQL.
+
+https://e-clinic-br.vercel.app
+
+=============================================================
+
+Nova atualização 0.1.4
+
+1. Novo layout na landing page, /signUp, /login, /dashboard
+2. Criado novo ícone para o SaaS
+3. Efeito de 'loading' ao carregar página pós /login e /signUp/success
+4. E-mails agora são disparados pelo e-mail do e-clinic-br@outlook.com
+5. Novos relatórios financeiros indicam lucros automáticos em tempo real da clínica
+6. Opção de exportar CSV e PDF de contas a pagar, a receber e pagamentos
+7. Novo sistema de Anamnese criado para atender a necessidade de cada clínica cadastrada
+8. Criado botão para gerar link de anamnese na ficha do paciente
+9. A atualização foi commitada e pushada, efetuando o deploy automático no Vercel, além de novas migrações SQL.
+
+https://e-clinic-br.vercel.app
+
+=============================================================
+
+Nova atualização 0.1.5
+
+1. Novo sistema de orçamentos
+2. Criado novos arquivos de PDF base para receitas, atestados e orçamentos
+3. Nova função que apaga automaticamente do database o que for apagado dentro do sistema para não ficar sobrecarregando o database
+4. 
