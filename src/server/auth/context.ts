@@ -1,5 +1,4 @@
 import { supabaseServerClient } from "@/server/db/supabaseServer";
-import { supabaseAdmin } from "@/server/db/supabaseAdmin";
 import { buildPermissions, PermissionSet } from "@/server/rbac/permissions";
 
 export type ClinicContext = {
@@ -34,17 +33,7 @@ export async function getClinicContext(): Promise<ClinicContext> {
     .select("clinic_id, role, permissions")
     .eq("user_id", user.id)
     .single();
-  let profile = profileResponse.data;
-
-  if (profileResponse.error || !profile) {
-    const admin = supabaseAdmin();
-    const { data: adminProfile } = await admin
-      .from("profiles")
-      .select("clinic_id, role, permissions")
-      .eq("user_id", user.id)
-      .single();
-    profile = adminProfile ?? null;
-  }
+  const profile = profileResponse.data;
 
   if (!profile?.clinic_id) {
     throw new Error("Profile not provisioned");

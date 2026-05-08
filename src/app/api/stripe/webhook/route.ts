@@ -4,6 +4,12 @@ import { stripe } from "@/server/billing/stripe";
 import { logger } from "@/lib/logger";
 import { BillingService } from "@/services/BillingService";
 import { BillingEmailService } from "@/services/BillingEmailService";
+import { getEnv } from "@/server/config/env";
+import {
+  markWebhookEventFailed,
+  markWebhookEventProcessed,
+  reserveWebhookEvent,
+} from "@/server/repositories/webhookEventsAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,15 +17,19 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const body = await request.text();
   const signature = (await headers()).get("stripe-signature");
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let webhookSecret = "";
+
+  try {
+    webhookSecret = getEnv().STRIPE_WEBHOOK_SECRET;
+  } catch (error) {
+    logger.error("Invalid environment for Stripe webhook", {
+      error: (error as Error).message,
+    });
+    return new Response("Webhook not configured", { status: 500 });
+  }
 
   if (!signature) {
     return new Response("Missing signature", { status: 400 });
-  }
-
-  if (!webhookSecret) {
-    logger.error("Missing STRIPE_WEBHOOK_SECRET");
-    return new Response("Webhook not configured", { status: 500 });
   }
 
   let event: Stripe.Event;
@@ -34,6 +44,22 @@ export async function POST(request: Request) {
 
   const service = new BillingService();
   const emailService = new BillingEmailService();
+
+  let reservation;
+  try {
+    reservation = await reserveWebhookEvent(event);
+  } catch (error) {
+    logger.error("Stripe webhook reservation error", {
+      eventId: event.id,
+      type: event.type,
+      error: (error as Error).message,
+    });
+    return new Response("Webhook reservation failed", { status: 500 });
+  }
+
+  if (!reservation.shouldProcess) {
+    return new Response("ok", { status: 200 });
+  }
 
   try {
     const alreadyProcessed = await service.hasProcessedEvent(event.id);
@@ -65,6 +91,7 @@ export async function POST(request: Request) {
     }
 
     await service.markEventProcessed(event.id);
+    await markWebhookEventProcessed(event.id);
     return new Response("ok", { status: 200 });
   } catch (error) {
     logger.error("Stripe webhook processing error", {
@@ -72,6 +99,14 @@ export async function POST(request: Request) {
       type: event.type,
       error: (error as Error).message,
     });
-    return new Response("ok", { status: 200 });
+    try {
+      await markWebhookEventFailed(event.id, (error as Error).message);
+    } catch (markError) {
+      logger.error("Stripe webhook failure tracking error", {
+        eventId: event.id,
+        error: (markError as Error).message,
+      });
+    }
+    return new Response("Webhook processing failed", { status: 500 });
   }
 }
